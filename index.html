@@ -943,9 +943,6 @@
 
         function initializeUI() {
             // Load saved state
-            const saved = localStorage.getItem('starredEmails');
-            if (saved) starredEmails = new Set(JSON.parse(saved));
-            
             const savedRead = localStorage.getItem('readEmails');
             if (savedRead) readEmails = new Set(JSON.parse(savedRead));
             
@@ -1196,24 +1193,7 @@
             let params = [];
             let countParams = [];
             
-            // Apply filters
-            if (currentView === 'starred') {
-                const starredIds = Array.from(starredEmails);
-                if (starredIds.length > 0) {
-                    const placeholders = starredIds.map(() => '?').join(',');
-                    query += ` AND document_id IN (${placeholders})`;
-                    countQuery += ` AND document_id IN (${placeholders})`;
-                    params.push(...starredIds);
-                    countParams.push(...starredIds);
-                } else {
-                    renderEmails([]);
-                    updatePagination(0);
-                    return;
-                }
-            } else if (currentView === 'sent') {
-                query += " AND folder = 'sent'";
-                countQuery += " AND folder = 'sent'";
-            }
+            // Apply filters - Note: Sent/Starred folders removed as not implemented
             
             // Apply search
             if (searchQuery && searchQuery.trim()) {
@@ -1278,7 +1258,6 @@
             
             container.innerHTML = emails.map(email => {
                 const isRead = readEmails.has(email.document_id);
-                const isStarred = starredEmails.has(email.document_id);
                 
                 return `
                     <div class="email-row ${isRead ? '' : 'unread'}" data-id="${email.document_id}">
