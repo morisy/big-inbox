@@ -1,7 +1,7 @@
 title: Open Inbox
 description: Convert DocumentCloud documents into a browsable email interface
 instructions: |
-  This Add-On converts DocumentCloud documents into a searchable email-like interface.
+  This Add-On converts DocumentCloud documents into a searchable email-like interface. All collections are public by default - run locally for a private inbox.
   
   **How it works:**
   1. Extracts metadata from document tags (From, To, Date, Subject)
