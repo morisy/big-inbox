@@ -212,6 +212,47 @@ doc.created_at  # When uploaded
 doc.canonical_url  # Public URL
 ```
 
+## SoftTimeOutAddOn Implementation
+
+### How It Works
+The Add-On uses DocumentCloud's `SoftTimeOutAddOn` class to handle large document sets that may exceed the GitHub Actions timeout limit (15 minutes). Here's how it works:
+
+#### Key Configuration
+```python
+from documentcloud.addon import SoftTimeOutAddOn
+
+class OpenInbox(SoftTimeOutAddOn):
+    # Set soft timeout to 4 minutes (240 seconds)
+    soft_time_limit = 240
+```
+
+#### Automatic Timeout Handling
+1. **Single Run Processing**: The Add-On processes ALL documents in one run (no artificial batching)
+2. **Natural Timeout Detection**: When approaching the 4-minute soft timeout, SoftTimeOutAddOn automatically:
+   - Calls `cleanup()` method to save progress state
+   - Restarts the GitHub Actions job automatically
+   - Calls `restore()` method to resume from saved state
+
+#### State Management
+- **cleanup()**: Saves `processed_doc_ids` to `cache/processed_docs.json` when timeout occurs
+- **restore()**: Loads previously processed document IDs to avoid reprocessing
+- **Automatic Restart**: DocumentCloud handles job restart - no manual intervention needed
+
+#### Storage Optimization
+- **Body Text**: 50KB limit per email (50x increase from original 1KB)
+- **Search Text**: 100KB limit per email (10x increase from original 10KB)
+- **Capacity**: ~500-800 full emails per 25MB GitHub API limit
+- **Database Size**: ~18-20KB per email average
+
+#### Important Notes
+- **Don't Force Batching**: Let SoftTimeOutAddOn handle timeouts naturally
+- **Single Database**: Creates one database with all emails (not batch files)
+- **Timeout Setting**: GitHub Actions timeout (15 min) should be longer than soft timeout (4 min)
+- **No Manual Restarts**: System handles restarts automatically on timeout
+
+#### Reference Implementation
+Based on the DocumentCloud Filecoin Export Add-On pattern. The key insight is that SoftTimeOutAddOn handles **natural timeouts**, not artificial batching.
+
 ## Security Considerations
 - Never commit secrets/keys to repository
 - Document URLs are public in DocumentCloud

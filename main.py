@@ -45,12 +45,16 @@ class EmailRecord:
 
 
 class OpenInbox(SoftTimeOutAddOn):
+    """Open Inbox DocumentCloud Add-On with SoftTimeOut support"""
+    
+    # Set soft timeout to 4 minutes (240 seconds) to allow time for cleanup
+    soft_time_limit = 240
     """Open Inbox - DocumentCloud Add-On for creating email-like interfaces from documents"""
     
     def __init__(self):
         super().__init__()
         self.timed_out = False
-        self.batch_size = 50  # Process 50 emails per batch
+        # No batching - process all documents in one run with SoftTimeOutAddOn handling timeouts
         self.processed_doc_ids = set()
     
     def restore(self):
@@ -113,14 +117,12 @@ class OpenInbox(SoftTimeOutAddOn):
                 self.set_message("✅ All documents already processed!")
                 return
                 
-            # Process current batch 
-            current_batch = remaining_documents[:self.batch_size]
+            # Process all remaining documents
+            self.set_message(f"📄 Processing {remaining_count} documents...")
             
-            self.set_message(f"📄 Processing batch: {len(current_batch)} documents ({processed_count + len(current_batch)}/{total_docs} total)")
-            
-            # Extract email records from current batch
+            # Extract email records from all documents
             email_records = []
-            for i, doc in enumerate(current_batch):
+            for i, doc in enumerate(remaining_documents):
                 try:
                     record = self.extract_email_record(doc, date_format)
                     if record:
@@ -128,37 +130,26 @@ class OpenInbox(SoftTimeOutAddOn):
                         self.processed_doc_ids.add(str(doc.id))
                     
                     # Update progress
-                    progress = int((i + 1) / len(current_batch) * 60)
+                    progress = int((i + 1) / remaining_count * 60)
                     self.set_progress(progress)
-                    self.set_message(f"📄 Processing batch... ({i+1}/{len(current_batch)})")
+                    self.set_message(f"📄 Processing documents... ({i+1}/{remaining_count})")
                     
                 except Exception as e:
                     logger.error(f"Error processing document {doc.id}: {e}")
                     continue
                     
             if not email_records:
-                if remaining_count > len(current_batch):
-                    self.set_message("📄 Current batch complete, continuing with next batch...")
-                    return  # SoftTimeOutAddOn will restart automatically
-                else:
-                    self.set_message("❌ No valid email records could be extracted")
-                    return
+                self.set_message("❌ No valid email records could be extracted")
+                return
                 
-            # Generate batch-specific database filename
-            batch_num = (processed_count // self.batch_size) + 1
+            # Generate database filename 
             collection_id = str(uuid.uuid4())[:8]
             safe_collection_name = re.sub(r'[^a-zA-Z0-9_-]', '_', collection_name)[:30]
-            
-            # Include batch number if processing in batches
-            if total_docs > self.batch_size or processed_count > 0:
-                database_name = f"{collection_id}_{safe_collection_name}_batch{batch_num}.db"
-                display_name = f"{collection_name} (Batch {batch_num})"
-            else:
-                database_name = f"{collection_id}_{safe_collection_name}.db"
-                display_name = collection_name
+            database_name = f"{collection_id}_{safe_collection_name}.db"
+            display_name = collection_name
             
             logger.info(f"Generated collection_id: {collection_id}")
-            logger.info(f"Batch {batch_num}: Processing {len(email_records)} emails")
+            logger.info(f"Processing {len(email_records)} emails total")
             logger.info(f"Final database_name: '{database_name}'")
                 
             self.set_progress(70)
@@ -184,45 +175,21 @@ class OpenInbox(SoftTimeOutAddOn):
                 except Exception as e:
                     logger.error(f"Failed to upload database file: {e}")
             
-            # Check if more documents remain to process
-            remaining_after_batch = len(remaining_documents) - len(current_batch)
-            
-            if remaining_after_batch > 0 and not self.timed_out:
-                # More documents to process - let SoftTimeOutAddOn restart automatically
-                self.set_progress(90)
-                self.set_message(f"📄 Batch {batch_num} complete. {remaining_after_batch} documents remaining...")
-                logger.info(f"Batch {batch_num} completed. {remaining_after_batch} documents remaining for next batch.")
-                return
-            
             # All processing complete
             if deployed_url:
                 self.set_progress(100)
                 total_processed = len(self.processed_doc_ids)
                 
-                if total_processed > len(email_records):
-                    # Multi-batch completion
-                    self.set_message(f"✅ All batches complete! {total_processed} total emails processed")
-                    email_subject = f"Open Inbox Collection Complete: {collection_name}"
-                    email_body = f"Your email collection '{collection_name}' processing is complete!\n\n" \
-                               f"📧 {total_processed} total emails processed across multiple batches\n" \
-                               f"🌐 Latest batch: {deployed_url}\n" \
-                               f"💾 View all collections: https://morisy.github.io/open-inbox/collections.html\n\n" \
-                               f"The collection is now browsable with a Gmail-like interface. You can search, filter by contacts, and explore the email threads.\n\n" \
-                               f"Generated by Open Inbox DocumentCloud Add-On"
-                    
-                    # Send completion notification for multi-batch
-                    self.send_mail(email_subject, email_body)
-                else:
-                    # Single batch completion  
-                    self.set_message(f"✅ Open Inbox ready! View at: {deployed_url}")
-                    email_subject = f"Open Inbox Collection Ready: {collection_name}"
-                    email_body = f"Your email collection '{collection_name}' has been created!\n\n" \
-                               f"📧 {len(email_records)} emails processed\n" \
-                               f"🌐 View online: {deployed_url}\n" \
-                               f"💾 Database: {database_name}\n\n" \
-                               f"The collection is now browsable with a Gmail-like interface. " \
-                               f"You can search, filter by contacts, and explore the email threads.\n\n" \
-                               f"Generated by Open Inbox DocumentCloud Add-On"
+                # Collection completion
+                self.set_message(f"✅ Open Inbox ready! View at: {deployed_url}")
+                email_subject = f"Open Inbox Collection Ready: {collection_name}"
+                email_body = f"Your email collection '{collection_name}' has been created!\n\n" \
+                           f"📧 {len(email_records)} emails processed\n" \
+                           f"🌐 View online: {deployed_url}\n" \
+                           f"💾 Database: {database_name}\n\n" \
+                           f"The collection is now browsable with a Gmail-like interface. " \
+                           f"You can search, filter by contacts, and explore the email threads.\n\n" \
+                           f"Generated by Open Inbox DocumentCloud Add-On"
                 
                 # Send completion notification
                 self.send_mail(email_subject, email_body)
@@ -329,10 +296,12 @@ class OpenInbox(SoftTimeOutAddOn):
             
             # Aggressive truncation to meet GitHub API limits (25MB max)
             # Truncate body to 1KB for display, search text to 10KB
-            body_text = doc_text[:1000] if len(doc_text) > 1000 else doc_text
-            search_text = doc_text[:10000] if len(doc_text) > 10000 else doc_text
+            # Increased limits for full email text storage
+            # 25MB GitHub API limit allows roughly 500-1000 full emails
+            body_text = doc_text[:50000] if len(doc_text) > 50000 else doc_text  # 50KB limit
+            search_text = doc_text[:100000] if len(doc_text) > 100000 else doc_text  # 100KB limit
             
-            if len(doc_text) > 1000:
+            if len(doc_text) > 50000:
                 body_text += f"\n\n[Document truncated. Full text available at: https://www.documentcloud.org/documents/{doc.id}]"
             
             return EmailRecord(
