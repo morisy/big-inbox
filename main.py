@@ -35,6 +35,7 @@ class EmailRecord:
     recipient_name: str
     subject: str
     body: str
+    full_text: str  # Full document text for search
     date_sent: Optional[datetime]
     source: str
     document_url: str
@@ -239,6 +240,12 @@ class OpenInbox(AddOn):
             # Generate preview
             preview = self.generate_preview(doc_text)
             
+            # Truncate body text to reasonable email size (5KB) for storage efficiency
+            # Full text is still available for search via FTS table
+            body_text = doc_text[:5000] if len(doc_text) > 5000 else doc_text
+            if len(doc_text) > 5000:
+                body_text += f"\n\n[Document truncated. Full text available at: https://www.documentcloud.org/documents/{doc.id}]"
+            
             return EmailRecord(
                 document_id=f"DC_{doc.id}",
                 sender_email=sender_email or "unknown@documentcloud.org",
@@ -246,7 +253,8 @@ class OpenInbox(AddOn):
                 recipient_email=recipient_email or "unknown@documentcloud.org",
                 recipient_name=recipient_name or "Unknown Recipient",
                 subject=subject,
-                body=doc_text,
+                body=body_text,
+                full_text=doc_text,  # Keep full text for search
                 date_sent=date_sent,
                 source=f"DocumentCloud - {doc.source}" if hasattr(doc, 'source') else "DocumentCloud",
                 document_url=f"https://www.documentcloud.org/documents/{doc.id}",
@@ -609,7 +617,7 @@ class OpenInbox(AddOn):
                             name = COALESCE(contacts.name, excluded.name)
                     """, (email, name, name or email, record.date_sent, record.date_sent))
             
-            # Add to FTS
+            # Add to FTS - use full_text for comprehensive search
             cursor.execute("""
                 INSERT INTO email_search (
                     document_id, sender_name, sender_email, recipient_name, 
@@ -622,7 +630,7 @@ class OpenInbox(AddOn):
                 record.recipient_name,
                 record.recipient_email, 
                 record.subject,
-                record.body
+                record.full_text  # Use full document text for search
             ))
         
         conn.commit()
