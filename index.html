@@ -874,7 +874,12 @@
                 document.querySelector('.app-container').style.display = 'flex';
                 
                 // Initialize UI
-                initializeUI();
+                try {
+                    initializeUI();
+                } catch (uiError) {
+                    console.error('Error initializing UI:', uiError);
+                    // Continue anyway - database is loaded
+                }
                 
             } catch (error) {
                 console.error('Failed to load SQL.js:', error);
@@ -931,7 +936,10 @@
                 
                 const data = new Uint8Array(await response.arrayBuffer());
                 console.log('Data loaded, size:', data.length);
+                
+                // Create database
                 db = new SQL.Database(data);
+                console.log('Database created successfully');
                 
                 // Check for collection metadata and update title
                 try {
@@ -954,7 +962,9 @@
                     localStorage.setItem('emailDb', base64);
                 }
                 
+                console.log('Calling onDatabaseLoaded...');
                 onDatabaseLoaded();
+                console.log('Database loading complete');
                 
             } catch (error) {
                 console.error('Failed to load database from URL:', error);
