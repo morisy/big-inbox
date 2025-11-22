@@ -240,10 +240,12 @@ class OpenInbox(AddOn):
             # Generate preview
             preview = self.generate_preview(doc_text)
             
-            # Truncate body text to reasonable email size (5KB) for storage efficiency
-            # Full text is still available for search via FTS table
-            body_text = doc_text[:5000] if len(doc_text) > 5000 else doc_text
-            if len(doc_text) > 5000:
+            # Aggressive truncation to meet GitHub API limits (25MB max)
+            # Truncate body to 1KB for display, search text to 10KB
+            body_text = doc_text[:1000] if len(doc_text) > 1000 else doc_text
+            search_text = doc_text[:10000] if len(doc_text) > 10000 else doc_text
+            
+            if len(doc_text) > 1000:
                 body_text += f"\n\n[Document truncated. Full text available at: https://www.documentcloud.org/documents/{doc.id}]"
             
             return EmailRecord(
@@ -254,7 +256,7 @@ class OpenInbox(AddOn):
                 recipient_name=recipient_name or "Unknown Recipient",
                 subject=subject,
                 body=body_text,
-                full_text=doc_text,  # Keep full text for search
+                full_text=search_text,  # Limited text for search to reduce DB size
                 date_sent=date_sent,
                 source=f"DocumentCloud - {doc.source}" if hasattr(doc, 'source') else "DocumentCloud",
                 document_url=f"https://www.documentcloud.org/documents/{doc.id}",
@@ -733,8 +735,8 @@ class OpenInbox(AddOn):
                 logger.error(f"Database validation failed: {e}")
                 return False
             
-            # Check file size limit (GitHub API limit is 100MB, but we should be conservative)  
-            if len(content) > 95 * 1024 * 1024:  # 95MB limit (close to GitHub's 100MB)
+            # Check file size limit (GitHub Contents API has strict 25MB limit)  
+            if len(content) > 20 * 1024 * 1024:  # 20MB limit for GitHub Contents API
                 logger.error(f"Database file too large for GitHub API: {len(content)} bytes")
                 return False
             
