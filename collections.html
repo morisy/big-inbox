@@ -380,7 +380,7 @@
                 const createdDate = new Date(collection.created || Date.now()).toLocaleDateString();
                 
                 return `
-                    <a href="/?emails=${collection.id}" class="collection-card">
+                    <a href="./?emails=${collection.id}" class="collection-card">
                         <div class="collection-title">${displayName}</div>
                         <div class="collection-stats">
                             <span>📧 ${collection.emailCount || 'Unknown'} emails</span>
