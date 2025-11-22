@@ -14,11 +14,6 @@ properties:
     type: string
     description: "Name for this email collection (e.g., 'clinton-emails', 'foia-request-2023')"
     
-  email_notification:
-    title: Email Address for Notification
-    type: string
-    description: "Email address to notify when the collection is ready (leave empty to skip)"
-    
   date_format:
     title: Date Format in Tags
     type: string
