@@ -957,9 +957,24 @@
                 }
                 
                 // Save to localStorage if not too large
-                if (data.length < 50 * 1024 * 1024) {
-                    const base64 = btoa(String.fromCharCode(...data));
-                    localStorage.setItem('emailDb', base64);
+                // Skip on mobile to avoid call stack issues
+                const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+                if (!isMobile && data.length < 50 * 1024 * 1024) {
+                    try {
+                        // Use chunked approach to avoid call stack issues
+                        let binary = '';
+                        const chunkSize = 8192; // Process in 8KB chunks
+                        for (let i = 0; i < data.length; i += chunkSize) {
+                            const chunk = data.slice(i, i + chunkSize);
+                            binary += String.fromCharCode.apply(null, chunk);
+                        }
+                        const base64 = btoa(binary);
+                        localStorage.setItem('emailDb', base64);
+                        console.log('Database cached to localStorage');
+                    } catch (e) {
+                        console.log('Could not cache database to localStorage:', e.message);
+                        // Continue without caching - not critical
+                    }
                 }
                 
                 console.log('Calling onDatabaseLoaded...');
@@ -1223,9 +1238,21 @@
                     db = new SQL.Database(data);
                     
                     // Save to localStorage (if not too large)
-                    if (data.length < 50 * 1024 * 1024) { // 50MB limit
-                        const base64 = btoa(String.fromCharCode(...data));
-                        localStorage.setItem('emailDb', base64);
+                    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+                    if (!isMobile && data.length < 50 * 1024 * 1024) { // 50MB limit
+                        try {
+                            // Use chunked approach to avoid call stack issues
+                            let binary = '';
+                            const chunkSize = 8192; // Process in 8KB chunks
+                            for (let i = 0; i < data.length; i += chunkSize) {
+                                const chunk = data.slice(i, i + chunkSize);
+                                binary += String.fromCharCode.apply(null, chunk);
+                            }
+                            const base64 = btoa(binary);
+                            localStorage.setItem('emailDb', base64);
+                        } catch (e) {
+                            console.log('Could not cache database:', e.message);
+                        }
                     }
                     
                     onDatabaseLoaded();
