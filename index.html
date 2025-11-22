@@ -1012,43 +1012,36 @@
             });
             
             // Upload button
-            document.getElementById('upload-btn').addEventListener('click', () => {
-                const uploadContainer = document.getElementById('upload-container');
-                const listView = document.getElementById('list-view');
-                const detailView = document.getElementById('email-detail');
-                
-                if (uploadContainer.style.display === 'block' || !db) {
-                    uploadContainer.style.display = 'block';
-                    listView.style.display = 'none';
-                    detailView.style.display = 'none';
-                } else {
-                    uploadContainer.style.display = 'none';
-                    listView.style.display = 'block';
-                }
-            });
+            // Upload button was removed, skip this code
             
             // Menu toggle
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
+            const menuToggle = document.getElementById('menu-toggle');
             
-            document.getElementById('menu-toggle').addEventListener('click', () => {
-                const isMobile = window.innerWidth <= 768;
-                
-                if (isMobile) {
-                    // Mobile: toggle open class and overlay
-                    sidebar.classList.toggle('open');
-                    overlay.classList.toggle('show');
-                } else {
-                    // Desktop: toggle collapsed class
-                    sidebar.classList.toggle('collapsed');
-                }
-            });
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', () => {
+                    console.log('Menu toggle clicked');
+                    const isMobile = window.innerWidth <= 768;
+                    
+                    if (isMobile) {
+                        // Mobile: toggle open class and overlay
+                        sidebar.classList.toggle('open');
+                        if (overlay) overlay.classList.toggle('show');
+                    } else {
+                        // Desktop: toggle collapsed class
+                        sidebar.classList.toggle('collapsed');
+                    }
+                });
+            }
             
             // Close sidebar when clicking overlay on mobile
-            overlay.addEventListener('click', () => {
-                sidebar.classList.remove('open');
-                overlay.classList.remove('show');
-            });
+            if (overlay) {
+                overlay.addEventListener('click', () => {
+                    if (sidebar) sidebar.classList.remove('open');
+                    overlay.classList.remove('show');
+                });
+            }
             
             // Handle window resize
             window.addEventListener('resize', () => {
@@ -1067,7 +1060,8 @@
             const searchInput = document.getElementById('search-input');
             const clearSearchBtn = document.getElementById('clear-search');
             
-            searchInput.addEventListener('input', (e) => {
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
                 const value = e.target.value;
                 
@@ -1086,10 +1080,10 @@
                     
                     loadEmails();
                 }, 300);
-            });
-            
-            // Handle Enter key for immediate search
-            searchInput.addEventListener('keydown', (e) => {
+                });
+                
+                // Handle Enter key for immediate search
+                searchInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     clearTimeout(searchTimeout);
                     searchQuery = e.target.value;
@@ -1106,10 +1100,12 @@
                     
                     loadEmails();
                 }
-            });
+                });
+            }
             
             // Clear search
-            clearSearchBtn.addEventListener('click', () => {
+            if (clearSearchBtn) {
+                clearSearchBtn.addEventListener('click', () => {
                 searchInput.value = '';
                 searchQuery = '';
                 currentPage = 1;
@@ -1123,7 +1119,8 @@
                 }
                 
                 loadEmails();
-            });
+                });
+            }
             
             // Navigation
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -1172,23 +1169,35 @@
             });
             
             // Stats
-            document.getElementById('stats-btn').addEventListener('click', showStats);
+            const statsBtn = document.getElementById('stats-btn');
+            if (statsBtn) {
+                statsBtn.addEventListener('click', showStats);
+            }
             
             // Help
-            document.getElementById('help-btn').addEventListener('click', showHelp);
+            const helpBtn = document.getElementById('help-btn');
+            if (helpBtn) {
+                helpBtn.addEventListener('click', showHelp);
+            }
             
             // Click outside modal to close
-            document.getElementById('stats-modal').addEventListener('click', (e) => {
-                if (e.target.id === 'stats-modal') {
-                    closeStatsModal();
-                }
-            });
+            const statsModal = document.getElementById('stats-modal');
+            if (statsModal) {
+                statsModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'stats-modal') {
+                        closeStatsModal();
+                    }
+                });
+            }
             
-            document.getElementById('help-modal').addEventListener('click', (e) => {
-                if (e.target.id === 'help-modal') {
-                    closeHelpModal();
-                }
-            });
+            const helpModal = document.getElementById('help-modal');
+            if (helpModal) {
+                helpModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'help-modal') {
+                        closeHelpModal();
+                    }
+                });
+            }
         }
 
         function handleFileSelect(e) {
@@ -1474,6 +1483,7 @@
         }
 
         function showStats() {
+            console.log('showStats called');
             if (!db) {
                 alert('No database loaded');
                 return;
@@ -1522,7 +1532,14 @@
         }
         
         function showHelp() {
-            document.getElementById('help-modal').classList.add('show');
+            console.log('showHelp called');
+            const helpModal = document.getElementById('help-modal');
+            if (helpModal) {
+                helpModal.classList.add('show');
+                console.log('Help modal shown');
+            } else {
+                console.error('Help modal not found');
+            }
         }
         
         function closeHelpModal() {
