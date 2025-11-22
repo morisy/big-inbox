@@ -1,7 +1,7 @@
 # DocumentCloud Email Explorer Add-On Dependencies
 
-# DocumentCloud API client
-python-documentcloud>=3.5.0
+# DocumentCloud API client  
+python-documentcloud>=3.7.1
 
 # HTTP requests library
 requests>=2.28.0

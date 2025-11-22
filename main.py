@@ -18,7 +18,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
-from documentcloud.addon import AddOn
+from documentcloud.addon import SoftTimeOutAddOn
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -44,12 +44,45 @@ class EmailRecord:
     tags: List[str]
 
 
-class OpenInbox(AddOn):
+class OpenInbox(SoftTimeOutAddOn):
     """Open Inbox - DocumentCloud Add-On for creating email-like interfaces from documents"""
     
+    def __init__(self):
+        super().__init__()
+        self.timed_out = False
+        self.batch_size = 50  # Process 50 emails per batch
+        self.processed_doc_ids = set()
+    
+    def restore(self):
+        """Restore processing state from previous run if timeout occurred"""
+        import json
+        import os
+        
+        if os.path.exists("cache/processed_docs.json"):
+            with open("cache/processed_docs.json", "r") as f:
+                self.processed_doc_ids = set(json.load(f))
+            logger.info(f"Restored state: {len(self.processed_doc_ids)} documents already processed")
+        else:
+            logger.info("Starting fresh processing")
+    
+    def cleanup(self):
+        """Save processing state when timeout occurs"""
+        import json
+        import os
+        
+        os.makedirs("cache", exist_ok=True)
+        with open("cache/processed_docs.json", "w") as f:
+            json.dump(list(self.processed_doc_ids), f)
+        
+        logger.info(f"Timeout occurred. Saved state: {len(self.processed_doc_ids)} documents processed")
+        self.timed_out = True
+    
     def main(self):
-        """Main Add-On execution"""
+        """Main Add-On execution with batch processing and timeout handling"""
         try:
+            # Restore previous state if continuing from timeout
+            self.restore()
+            
             # Get parameters
             collection_name = self.data.get("collection_name", "").strip()
             date_format = self.data.get("date_format", "auto")
@@ -62,83 +95,137 @@ class OpenInbox(AddOn):
             self.set_progress(0)
             
             # Get documents to process
-            documents = self.get_documents()
-            if not documents:
+            all_documents = self.get_documents()
+            if not all_documents:
                 self.set_message("❌ No documents found to process")
                 return
-                
-            logger.info(f"Processing {len(documents)} documents")
-            self.set_message(f"📄 Found {len(documents)} documents to process")
             
-            # Extract email records from documents
+            # Filter out already processed documents
+            remaining_documents = [doc for doc in all_documents if str(doc.id) not in self.processed_doc_ids]
+            
+            total_docs = len(all_documents)
+            processed_count = len(self.processed_doc_ids)
+            remaining_count = len(remaining_documents)
+            
+            logger.info(f"Total documents: {total_docs}, Already processed: {processed_count}, Remaining: {remaining_count}")
+            
+            if remaining_count == 0:
+                self.set_message("✅ All documents already processed!")
+                return
+                
+            # Process current batch 
+            current_batch = remaining_documents[:self.batch_size]
+            
+            self.set_message(f"📄 Processing batch: {len(current_batch)} documents ({processed_count + len(current_batch)}/{total_docs} total)")
+            
+            # Extract email records from current batch
             email_records = []
-            for i, doc in enumerate(documents):
+            for i, doc in enumerate(current_batch):
                 try:
                     record = self.extract_email_record(doc, date_format)
                     if record:
                         email_records.append(record)
+                        self.processed_doc_ids.add(str(doc.id))
                     
-                    # Update progress (first 60% is document processing)
-                    progress = int((i + 1) / len(documents) * 60)
+                    # Update progress
+                    progress = int((i + 1) / len(current_batch) * 60)
                     self.set_progress(progress)
-                    self.set_message(f"📄 Processing documents... ({i+1}/{len(documents)})")
+                    self.set_message(f"📄 Processing batch... ({i+1}/{len(current_batch)})")
                     
                 except Exception as e:
                     logger.error(f"Error processing document {doc.id}: {e}")
                     continue
                     
             if not email_records:
-                self.set_message("❌ No valid email records could be extracted")
-                return
+                if remaining_count > len(current_batch):
+                    self.set_message("📄 Current batch complete, continuing with next batch...")
+                    return  # SoftTimeOutAddOn will restart automatically
+                else:
+                    self.set_message("❌ No valid email records could be extracted")
+                    return
                 
-            # Generate database filename with UUID and collection name
-            collection_id = str(uuid.uuid4())[:8]  # First 8 chars of UUID
+            # Generate batch-specific database filename
+            batch_num = (processed_count // self.batch_size) + 1
+            collection_id = str(uuid.uuid4())[:8]
             safe_collection_name = re.sub(r'[^a-zA-Z0-9_-]', '_', collection_name)[:30]
-            database_name = f"{collection_id}_{safe_collection_name}.db"
-            collection_path = f"collections/{database_name}"
+            
+            # Include batch number if processing in batches
+            if total_docs > self.batch_size or processed_count > 0:
+                database_name = f"{collection_id}_{safe_collection_name}_batch{batch_num}.db"
+                display_name = f"{collection_name} (Batch {batch_num})"
+            else:
+                database_name = f"{collection_id}_{safe_collection_name}.db"
+                display_name = collection_name
             
             logger.info(f"Generated collection_id: {collection_id}")
-            logger.info(f"Original collection_name: '{collection_name}'")
-            logger.info(f"Safe collection_name: '{safe_collection_name}'")
+            logger.info(f"Batch {batch_num}: Processing {len(email_records)} emails")
             logger.info(f"Final database_name: '{database_name}'")
                 
             self.set_progress(70)
             self.set_message(f"📦 Creating database: {database_name}")
             
             # Create SQLite database with collection metadata
-            db_path = self.create_database(email_records, database_name, collection_name, collection_id)
+            db_path = self.create_database(email_records, database_name, display_name, collection_id)
 
             self.set_progress(85)
             self.set_message("🚀 Deploying to GitHub Pages...")
             
-            # Deploy to GitHub (commit to same repository)
-            deployed_url = self.deploy_to_github(db_path, database_name, collection_id, safe_collection_name, len(email_records))
+            # Deploy to GitHub (commit to same repository) 
+            if not self.timed_out:  # Only deploy if not timing out
+                deployed_url = self.deploy_to_github(db_path, database_name, collection_id, safe_collection_name, len(email_records))
+                
+                self.set_progress(95)
+                
+                # Upload database file for user download
+                try:
+                    with open(db_path, 'rb') as f:
+                        self.upload_file(f)
+                    logger.info(f"Uploaded database file: {database_name}")
+                except Exception as e:
+                    logger.error(f"Failed to upload database file: {e}")
             
-            self.set_progress(95)
+            # Check if more documents remain to process
+            remaining_after_batch = len(remaining_documents) - len(current_batch)
             
-            # Upload database file for user download
-            try:
-                with open(db_path, 'rb') as f:
-                    self.upload_file(f)
-                logger.info(f"Uploaded database file: {database_name}")
-            except Exception as e:
-                logger.error(f"Failed to upload database file: {e}")
+            if remaining_after_batch > 0 and not self.timed_out:
+                # More documents to process - let SoftTimeOutAddOn restart automatically
+                self.set_progress(90)
+                self.set_message(f"📄 Batch {batch_num} complete. {remaining_after_batch} documents remaining...")
+                logger.info(f"Batch {batch_num} completed. {remaining_after_batch} documents remaining for next batch.")
+                return
             
+            # All processing complete
             if deployed_url:
                 self.set_progress(100)
-                self.set_message(f"✅ Open Inbox ready! View at: {deployed_url}")
+                total_processed = len(self.processed_doc_ids)
+                
+                if total_processed > len(email_records):
+                    # Multi-batch completion
+                    self.set_message(f"✅ All batches complete! {total_processed} total emails processed")
+                    email_subject = f"Open Inbox Collection Complete: {collection_name}"
+                    email_body = f"Your email collection '{collection_name}' processing is complete!\n\n" \
+                               f"📧 {total_processed} total emails processed across multiple batches\n" \
+                               f"🌐 Latest batch: {deployed_url}\n" \
+                               f"💾 View all collections: https://morisy.github.io/open-inbox/collections.html\n\n" \
+                               f"The collection is now browsable with a Gmail-like interface. You can search, filter by contacts, and explore the email threads.\n\n" \
+                               f"Generated by Open Inbox DocumentCloud Add-On"
+                    
+                    # Send completion notification for multi-batch
+                    self.send_mail(email_subject, email_body)
+                else:
+                    # Single batch completion  
+                    self.set_message(f"✅ Open Inbox ready! View at: {deployed_url}")
+                    email_subject = f"Open Inbox Collection Ready: {collection_name}"
+                    email_body = f"Your email collection '{collection_name}' has been created!\n\n" \
+                               f"📧 {len(email_records)} emails processed\n" \
+                               f"🌐 View online: {deployed_url}\n" \
+                               f"💾 Database: {database_name}\n\n" \
+                               f"The collection is now browsable with a Gmail-like interface. " \
+                               f"You can search, filter by contacts, and explore the email threads.\n\n" \
+                               f"Generated by Open Inbox DocumentCloud Add-On"
                 
                 # Send completion notification
-                self.send_mail(
-                    f"Open Inbox Collection Ready: {collection_name}",
-                    f"Your email collection '{collection_name}' has been created!\n\n"
-                    f"📧 {len(email_records)} emails processed\n"
-                    f"🌐 View online: {deployed_url}\n"
-                    f"💾 Database: {database_name}\n\n"
-                    f"The collection is now browsable with a Gmail-like interface. "
-                    f"You can search, filter by contacts, and explore the email threads.\n\n"
-                    f"Generated by Open Inbox DocumentCloud Add-On"
-                )
+                self.send_mail(email_subject, email_body)
             else:
                 self.set_message("❌ Deployment failed. Database available for download.")
                 
