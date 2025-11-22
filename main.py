@@ -565,7 +565,6 @@ class OpenInbox(AddOn):
         """Commit database file via GitHub API"""
         try:
             from github import Github
-            import base64
             
             logger.info(f"Initializing GitHub client for repository: {github_repo}")
             
@@ -603,9 +602,8 @@ class OpenInbox(AddOn):
                 logger.error(f"Database file too large for GitHub API: {len(content)} bytes")
                 return False
             
-            # Encode for GitHub API
-            content_encoded = base64.b64encode(content).decode('utf-8')
-            logger.info(f"Base64 encoded size: {len(content_encoded)} characters")
+            # PyGithub will handle base64 encoding automatically for binary content
+            logger.info(f"Using raw binary content: {len(content)} bytes")
             
             # File path in repository
             file_path = f"collections/{database_name}"
@@ -621,17 +619,19 @@ class OpenInbox(AddOn):
                 repo.update_file(
                     file_path,
                     commit_message,
-                    content_encoded,
+                    content,  # Use raw bytes, not base64
                     file.sha
                 )
                 logger.info(f"Updated existing file: {file_path}")
             except Exception as e:
                 # File doesn't exist, create it
                 logger.info(f"File doesn't exist (error: {e}), creating new file...")
-                repo.create_file(
+                
+                # Create file - PyGithub handles binary encoding automatically
+                result = repo.create_file(
                     file_path,
                     commit_message,
-                    content_encoded
+                    content  # Use raw bytes, PyGithub will handle base64 encoding
                 )
                 logger.info(f"Created new file: {file_path}")
             
