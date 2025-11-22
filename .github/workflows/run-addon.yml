@@ -1,6 +1,9 @@
 name: Run Add-On
 on: repository_dispatch
 
+permissions:
+  contents: write
+
 jobs:
  Run-Add-On:
    uses: MuckRock/documentcloud-addon-workflows/.github/workflows/run-addon.yml@v1

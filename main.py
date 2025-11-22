@@ -503,7 +503,7 @@ class OpenInbox(AddOn):
         try:
             # Get repository info from GitHub environment
             github_repo = os.getenv('GITHUB_REPOSITORY')
-            github_token = os.getenv('GITHUB_TOKEN')
+            github_token = os.getenv('TOKEN') or os.getenv('GITHUB_TOKEN')
             
             if not github_repo:
                 logger.error("GITHUB_REPOSITORY environment variable not set")
