@@ -112,7 +112,7 @@ class OpenInbox(AddOn):
             self.set_message("🚀 Deploying to GitHub Pages...")
             
             # Deploy to GitHub (commit to same repository)
-            deployed_url = self.deploy_to_github(db_path, database_name, collection_id, safe_collection_name)
+            deployed_url = self.deploy_to_github(db_path, database_name, collection_id, safe_collection_name, len(email_records))
             
             self.set_progress(95)
             
@@ -657,7 +657,7 @@ class OpenInbox(AddOn):
         
         return db_path
     
-    def deploy_to_github(self, db_path: str, database_name: str, collection_id: str, safe_collection_name: str) -> Optional[str]:
+    def deploy_to_github(self, db_path: str, database_name: str, collection_id: str, safe_collection_name: str, email_count: int = 0) -> Optional[str]:
         """Deploy database to same GitHub repository using GitHub API"""
         try:
             # Get repository info from GitHub environment
@@ -690,6 +690,11 @@ class OpenInbox(AddOn):
             
             if success:
                 logger.info(f"Successfully committed to repository: {database_name}")
+                # Update collections/index.json with new collection
+                self._update_collections_index(
+                    collection_id, safe_collection_name, database_name, 
+                    email_count, github_repo, github_token
+                )
             else:
                 logger.warning(f"Could not commit to repository, but database created: {database_name}")
             
@@ -699,6 +704,73 @@ class OpenInbox(AddOn):
         except Exception as e:
             logger.error(f"GitHub deployment failed: {e}")
             return None
+    
+    def _update_collections_index(self, collection_id: str, collection_name: str, database_name: str, 
+                                 email_count: int, github_repo: str, github_token: str):
+        """Update collections/index.json with new collection entry"""
+        try:
+            from github import Github
+            import json
+            from datetime import datetime
+            
+            logger.info("Updating collections/index.json with new collection")
+            g = Github(github_token)
+            repo = g.get_repo(github_repo)
+            
+            # Get current index.json
+            index_path = "collections/index.json"
+            try:
+                file = repo.get_contents(index_path)
+                current_content = file.decoded_content.decode('utf-8')
+                collections = json.loads(current_content)
+                sha = file.sha
+            except:
+                # File doesn't exist, create new
+                collections = []
+                sha = None
+            
+            # Create new collection entry
+            new_collection = {
+                "id": f"{collection_id}_{collection_name}",
+                "filename": database_name,
+                "displayName": collection_name.replace('_', ' ').replace('-', ' ').title(),
+                "description": f"Email collection with {email_count} emails",
+                "emailCount": email_count,
+                "created": datetime.utcnow().isoformat() + "Z"
+            }
+            
+            # Check if collection already exists (avoid duplicates)
+            existing_ids = [c.get('id', '') for c in collections]
+            if new_collection['id'] not in existing_ids:
+                collections.append(new_collection)
+                
+                # Sort by creation date (newest first)
+                collections.sort(key=lambda x: x.get('created', ''), reverse=True)
+                
+                # Update the file
+                updated_content = json.dumps(collections, indent=2)
+                
+                if sha:
+                    repo.update_file(
+                        index_path,
+                        f"Auto-update collections index with {new_collection['displayName']}",
+                        updated_content,
+                        sha
+                    )
+                else:
+                    repo.create_file(
+                        index_path,
+                        f"Create collections index with {new_collection['displayName']}",
+                        updated_content
+                    )
+                    
+                logger.info(f"Successfully updated collections index with {new_collection['displayName']}")
+            else:
+                logger.info(f"Collection {new_collection['id']} already exists in index")
+                
+        except Exception as e:
+            logger.error(f"Failed to update collections index: {e}")
+            # Don't fail the entire deployment if index update fails
     
     def _commit_via_github_api(self, db_path: str, database_name: str, collection_name: str, 
                               github_repo: str, github_token: str) -> bool:
