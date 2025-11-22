@@ -473,25 +473,30 @@ class OpenInbox(AddOn):
                 return match.group(1).strip()
         return None
     
-    def generate_preview(self, text: str, max_length: int = 200) -> str:
-        """Generate a preview of the document text"""
+    def generate_preview(self, text: str, max_length: int = 100) -> str:
+        """Generate a minimal preview to reduce database size"""
         if not text:
             return ""
         
-        # Clean up text
+        # Ultra-minimal preview - just first sentence or 100 chars
         clean_text = ' '.join(text.strip().split())
         
         if len(clean_text) <= max_length:
             return clean_text
             
-        # Find a good break point near the limit
+        # Try to end at sentence boundary
         preview = clean_text[:max_length]
+        last_period = preview.rfind('.')
         last_space = preview.rfind(' ')
         
-        if last_space > max_length - 50:  # If we find a space reasonably close to the end
-            preview = preview[:last_space]
+        if last_period > max_length - 30:
+            preview = preview[:last_period + 1]
+        elif last_space > max_length - 20:
+            preview = preview[:last_space] + "..."
+        else:
+            preview = preview + "..."
             
-        return preview + "..."
+        return preview
     
     def create_database(self, email_records: List[EmailRecord], database_name: str, collection_name: str, collection_id: str) -> str:
         """Create SQLite database with email records"""
@@ -554,22 +559,18 @@ class OpenInbox(AddOn):
             )
         """)
         
-        # Create FTS table for search
+        # Create FTS table for search - only store searchable text, not duplicating everything
         cursor.execute("""
             CREATE VIRTUAL TABLE IF NOT EXISTS email_search USING fts5(
                 document_id UNINDEXED,
                 sender_name,
                 sender_email,
-                recipient_name, 
-                recipient_email,
                 subject,
-                body
+                search_content
             )
         """)
         
-        # Create indexes
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_emails_sender_email ON emails(sender_email)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_emails_recipient_email ON emails(recipient_email)")
+        # Minimal indexes - only what's essential
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_emails_date_sent ON emails(date_sent)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)")
         
@@ -586,11 +587,17 @@ class OpenInbox(AddOn):
                 'tags': record.tags
             }
             
+            # Minimize metadata JSON to reduce size
+            minimal_metadata = {
+                'document_url': record.document_url,
+                'page_count': record.page_count
+            }
+            
             cursor.execute("""
                 INSERT OR REPLACE INTO emails (
                     document_id, sender_email, sender_name, recipient_email, recipient_name,
-                    subject, body, preview, date_sent, folder, source, metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    subject, body, preview, date_sent, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 record.document_id,
                 record.sender_email,
@@ -601,9 +608,7 @@ class OpenInbox(AddOn):
                 record.body,
                 preview,
                 record.date_sent.isoformat() if record.date_sent else None,
-                'inbox',
-                record.source,
-                json.dumps(metadata)
+                json.dumps(minimal_metadata)
             ))
             
             # Update contacts
@@ -619,20 +624,17 @@ class OpenInbox(AddOn):
                             name = COALESCE(contacts.name, excluded.name)
                     """, (email, name, name or email, record.date_sent, record.date_sent))
             
-            # Add to FTS - use full_text for comprehensive search
+            # Add to FTS - only essential search fields to minimize duplication
             cursor.execute("""
                 INSERT INTO email_search (
-                    document_id, sender_name, sender_email, recipient_name, 
-                    recipient_email, subject, body
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    document_id, sender_name, sender_email, subject, search_content
+                ) VALUES (?, ?, ?, ?, ?)
             """, (
                 record.document_id,
                 record.sender_name,
                 record.sender_email,
-                record.recipient_name,
-                record.recipient_email, 
                 record.subject,
-                record.full_text  # Use full document text for search
+                record.full_text  # Limited search text
             ))
         
         conn.commit()
