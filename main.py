@@ -95,6 +95,11 @@ class OpenInbox(AddOn):
             safe_collection_name = re.sub(r'[^a-zA-Z0-9_-]', '_', collection_name)[:30]
             database_name = f"{collection_id}_{safe_collection_name}.db"
             collection_path = f"collections/{database_name}"
+            
+            logger.info(f"Generated collection_id: {collection_id}")
+            logger.info(f"Original collection_name: '{collection_name}'")
+            logger.info(f"Safe collection_name: '{safe_collection_name}'")
+            logger.info(f"Final database_name: '{database_name}'")
                 
             self.set_progress(70)
             self.set_message(f"📦 Creating database: {database_name}")
@@ -498,7 +503,7 @@ class OpenInbox(AddOn):
         logger.info(f"Created database {db_path} with {len(email_records)} records")
         return db_path
     
-    def deploy_to_github(self, db_path: str, database_name: str, collection_id: str, collection_name: str) -> Optional[str]:
+    def deploy_to_github(self, db_path: str, database_name: str, collection_id: str, safe_collection_name: str) -> Optional[str]:
         """Deploy database to same GitHub repository using GitHub API"""
         try:
             # Get repository info from GitHub environment
@@ -513,21 +518,21 @@ class OpenInbox(AddOn):
                 logger.warning("GITHUB_TOKEN not available, skipping commit to repository")
                 # Still return URL for user even if can't commit
                 username, repo_name = github_repo.split('/')
-                return f"https://{username}.github.io/{repo_name}/?emails={collection_id}_{collection_name}"
+                return f"https://{username}.github.io/{repo_name}/?emails={collection_id}_{safe_collection_name}"
             
             # Use GitHub API to commit the file
             logger.info(f"Attempting to commit {database_name} to {github_repo}")
             success = self._commit_via_github_api(
                 db_path, 
                 database_name, 
-                collection_name, 
+                safe_collection_name, 
                 github_repo, 
                 github_token
             )
             
             # Generate GitHub Pages URL
             username, repo_name = github_repo.split('/')
-            pages_url = f"https://{username}.github.io/{repo_name}/?emails={collection_id}_{collection_name}"
+            pages_url = f"https://{username}.github.io/{repo_name}/?emails={collection_id}_{safe_collection_name}"
             
             if success:
                 logger.info(f"Successfully committed to repository: {database_name}")
