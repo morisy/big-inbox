@@ -1101,6 +1101,7 @@
                     if (document.getElementById('email-detail').style.display === 'block') {
                         document.getElementById('email-detail').style.display = 'none';
                         document.getElementById('list-view').style.display = 'block';
+                        window.history.pushState('', document.title, window.location.pathname + window.location.search);
                     }
                     
                     loadEmails();
@@ -1121,6 +1122,7 @@
                     if (document.getElementById('email-detail').style.display === 'block') {
                         document.getElementById('email-detail').style.display = 'none';
                         document.getElementById('list-view').style.display = 'block';
+                        window.history.pushState('', document.title, window.location.pathname + window.location.search);
                     }
                     
                     loadEmails();
@@ -1141,6 +1143,7 @@
                 if (document.getElementById('email-detail').style.display === 'block') {
                     document.getElementById('email-detail').style.display = 'none';
                     document.getElementById('list-view').style.display = 'block';
+                    window.history.pushState('', document.title, window.location.pathname + window.location.search);
                 }
                 
                 loadEmails();
@@ -1191,6 +1194,8 @@
             document.getElementById('back-btn').addEventListener('click', () => {
                 document.getElementById('email-detail').style.display = 'none';
                 document.getElementById('list-view').style.display = 'block';
+                // Clear the hash to update the URL
+                window.history.pushState('', document.title, window.location.pathname + window.location.search);
             });
             
             // Stats
@@ -1271,6 +1276,9 @@
             loadEmails();
             loadContacts();
             updateCounts();
+            
+            // Check for permalink on page load
+            checkPermalinkOnLoad();
         }
 
         function loadEmails() {
@@ -1375,7 +1383,7 @@
             });
         }
 
-        function showEmail(email) {
+        function showEmail(email, updateHash = true) {
             document.getElementById('list-view').style.display = 'none';
             document.getElementById('email-detail').style.display = 'block';
             
@@ -1384,6 +1392,11 @@
             document.getElementById('detail-to').textContent = email.recipient_name || email.recipient_email || 'Unknown';
             document.getElementById('detail-date').textContent = formatDate(email.date_sent);
             document.getElementById('detail-body').textContent = email.body || '(no content)';
+            
+            // Update URL hash for permalink (unless we're loading from hash)
+            if (updateHash) {
+                window.location.hash = `#email/${email.document_id}`;
+            }
             
             // Add link to original document if available
             let metadata = {};
@@ -1401,6 +1414,12 @@
                         <i class="material-icons" style="margin-right: 8px;">description</i>
                         View Original Document on DocumentCloud
                     </a>
+                </div>
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                    <button onclick="copyPermalink('${email.document_id}')" style="background: var(--surface); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px 12px; color: var(--text-primary); cursor: pointer; display: inline-flex; align-items: center;">
+                        <i class="material-icons" style="margin-right: 8px; font-size: 16px;">link</i>
+                        Copy Permalink
+                    </button>
                 </div>`;
                 document.getElementById('detail-body').innerHTML = escapeHtml(email.body || '(no content)') + linkHtml;
             }
@@ -1465,6 +1484,7 @@
             if (document.getElementById('email-detail').style.display === 'block') {
                 document.getElementById('email-detail').style.display = 'none';
                 document.getElementById('list-view').style.display = 'block';
+                window.history.pushState('', document.title, window.location.pathname + window.location.search);
             }
             
             // Reset view to "All Emails" if we're in a filtered view
@@ -1609,6 +1629,147 @@
             return (text || '').toString().replace(/[&<>"']/g, m => map[m]);
         }
 
+        // Permalink functionality
+        function copyPermalink(documentId) {
+            const url = `${window.location.origin}${window.location.pathname}${window.location.search}#email/${documentId}`;
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('Permalink copied to clipboard!');
+                }).catch(() => {
+                    fallbackCopyToClipboard(url);
+                });
+            } else {
+                fallbackCopyToClipboard(url);
+            }
+        }
+
+        function fallbackCopyToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('Permalink copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy permalink:', err);
+                showToast('Failed to copy permalink');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(message) {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--primary-color);
+                color: white;
+                padding: 12px 16px;
+                border-radius: 4px;
+                font-size: 14px;
+                z-index: 10000;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                opacity: 0;
+                transform: translateY(-10px);
+                transition: all 0.3s ease;
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            }, 10);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        function handleHashChange() {
+            const hash = window.location.hash;
+            
+            if (hash.startsWith('#email/')) {
+                const documentId = hash.replace('#email/', '');
+                showEmailByDocumentId(documentId);
+            } else {
+                // No hash or invalid hash, show list view
+                if (document.getElementById('email-detail').style.display === 'block') {
+                    document.getElementById('email-detail').style.display = 'none';
+                    document.getElementById('list-view').style.display = 'block';
+                }
+            }
+        }
+
+        function showEmailByDocumentId(documentId) {
+            if (!db) return;
+            
+            try {
+                const query = `
+                    SELECT document_id, sender_email, sender_name, recipient_email, recipient_name, 
+                           subject, body, preview, date_sent, metadata
+                    FROM emails 
+                    WHERE document_id = ?
+                `;
+                
+                const results = db.exec(query, [documentId]);
+                
+                if (results.length > 0 && results[0].values.length > 0) {
+                    const row = results[0].values[0];
+                    const email = {
+                        document_id: row[0],
+                        sender_email: row[1],
+                        sender_name: row[2],
+                        recipient_email: row[3],
+                        recipient_name: row[4],
+                        subject: row[5],
+                        body: row[6],
+                        preview: row[7],
+                        date_sent: row[8],
+                        metadata: row[9] ? JSON.parse(row[9]) : {}
+                    };
+                    
+                    // Show email without updating hash to avoid infinite loop
+                    showEmail(email, false);
+                } else {
+                    console.warn('Email not found:', documentId);
+                    // Remove invalid hash
+                    window.location.hash = '';
+                }
+            } catch (error) {
+                console.error('Error loading email from permalink:', error);
+                window.location.hash = '';
+            }
+        }
+
+        // Handle permalink navigation
+        window.addEventListener('hashchange', handleHashChange);
+        
+        // Function to check permalink after database loads
+        function checkPermalinkOnLoad() {
+            if (window.location.hash.startsWith('#email/')) {
+                handleHashChange();
+            }
+        }
+        
         // Initialize when page loads
         initSqlJs();
     </script>
