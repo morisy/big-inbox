@@ -1,0 +1,31 @@
+title: Open Inbox
+description: Convert DocumentCloud documents into a browsable email interface
+type: object
+documents:
+  - selected
+  - query
+categories:
+  - export
+  - extraction
+  - bulk
+properties:
+  collection_name:
+    title: Collection Name
+    type: string
+    description: "Name for this email collection (e.g., 'clinton-emails', 'foia-request-2023')"
+    
+  email_notification:
+    title: Email Address for Notification
+    type: string
+    description: "Email address to notify when the collection is ready (leave empty to skip)"
+    
+  date_format:
+    title: Date Format in Tags
+    type: string
+    enum:
+      - auto
+      - "%Y-%m-%d"
+      - "%m/%d/%Y"
+      - "%d/%m/%Y"
+    default: auto
+    description: "Expected date format in document tags"

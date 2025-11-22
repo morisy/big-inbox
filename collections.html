@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Inbox Collections</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #202124;
+            background: #f8f9fa;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #202124;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #5f6368;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .collections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .collection-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            border: 1px solid #dadce0;
+        }
+
+        .collection-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .collection-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a73e8;
+        }
+
+        .collection-stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            color: #5f6368;
+        }
+
+        .collection-description {
+            color: #5f6368;
+            margin-bottom: 16px;
+        }
+
+        .collection-date {
+            font-size: 0.85rem;
+            color: #9aa0a6;
+        }
+
+        .no-collections {
+            text-align: center;
+            padding: 60px 20px;
+            color: #5f6368;
+        }
+
+        .no-collections h3 {
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+            color: #202124;
+        }
+
+        .no-collections p {
+            margin-bottom: 24px;
+            font-size: 1.1rem;
+        }
+
+        .upload-area {
+            background: white;
+            border: 2px dashed #dadce0;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-top: 24px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #1a73e8;
+            background: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #1a73e8;
+            background: #e8f0fe;
+        }
+
+        .btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: #1557b0;
+            text-decoration: none;
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid #dadce0;
+            color: #5f6368;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .collections-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Open Inbox Collections</h1>
+            <p>Browse email databases created from DocumentCloud documents. Each collection represents emails extracted from document metadata and content.</p>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading collections...</p>
+        </div>
+
+        <div id="collections-container" style="display: none;">
+            <div class="collections-grid" id="collections-grid">
+                <!-- Collections will be loaded here -->
+            </div>
+
+            <div id="no-collections" class="no-collections" style="display: none;">
+                <h3>No Collections Yet</h3>
+                <p>No email collections have been created yet. Use the Open Inbox DocumentCloud Add-On to create your first collection.</p>
+                
+                <div class="upload-area" id="upload-area">
+                    <h4>Or Upload a Database</h4>
+                    <p>Drag and drop a .db file here, or click to browse</p>
+                    <input type="file" id="file-input" accept=".db,.sqlite,.sqlite3" style="display: none;">
+                    <button class="btn" onclick="document.getElementById('file-input').click()">
+                        Choose File
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Powered by <a href="https://www.documentcloud.org/" style="color: #1a73e8;">DocumentCloud</a> Open Inbox Add-On</p>
+        </div>
+    </div>
+
+    <script>
+        async function loadCollections() {
+            try {
+                // Try to fetch collections directory listing
+                const response = await fetch('collections/');
+                if (response.ok) {
+                    const text = await response.text();
+                    const collections = parseDirectoryListing(text);
+                    displayCollections(collections);
+                } else {
+                    // Fallback: try to fetch a known collections.json file
+                    await loadCollectionsFromIndex();
+                }
+            } catch (error) {
+                console.error('Error loading collections:', error);
+                await loadCollectionsFromIndex();
+            }
+        }
+
+        async function loadCollectionsFromIndex() {
+            try {
+                const response = await fetch('collections/index.json');
+                if (response.ok) {
+                    const collections = await response.json();
+                    displayCollections(collections);
+                } else {
+                    showNoCollections();
+                }
+            } catch (error) {
+                console.error('Error loading collections index:', error);
+                showNoCollections();
+            }
+        }
+
+        function parseDirectoryListing(html) {
+            // Simple parser for GitHub Pages directory listing
+            const collections = [];
+            const dbFiles = html.match(/href="([^"]*\.db)"/g);
+            
+            if (dbFiles) {
+                dbFiles.forEach(match => {
+                    const filename = match.match(/href="([^"]*)"/)[1];
+                    const nameWithoutExt = filename.replace('.db', '');
+                    const [id, ...nameParts] = nameWithoutExt.split('_');
+                    const displayName = nameParts.join('_').replace(/[-_]/g, ' ');
+                    
+                    collections.push({
+                        id: nameWithoutExt,
+                        filename,
+                        displayName: displayName || nameWithoutExt,
+                        created: new Date().toISOString()
+                    });
+                });
+            }
+            
+            return collections;
+        }
+
+        function displayCollections(collections) {
+            const container = document.getElementById('collections-container');
+            const grid = document.getElementById('collections-grid');
+            const loading = document.getElementById('loading');
+            const noCollections = document.getElementById('no-collections');
+
+            loading.style.display = 'none';
+            container.style.display = 'block';
+
+            if (collections.length === 0) {
+                showNoCollections();
+                return;
+            }
+
+            grid.innerHTML = collections.map(collection => {
+                const displayName = collection.displayName || collection.id.replace(/[-_]/g, ' ');
+                const createdDate = new Date(collection.created || Date.now()).toLocaleDateString();
+                
+                return `
+                    <a href="/?emails=${collection.id}" class="collection-card">
+                        <div class="collection-title">${displayName}</div>
+                        <div class="collection-stats">
+                            <span>📧 ${collection.emailCount || 'Unknown'} emails</span>
+                            <span>📁 Collection</span>
+                        </div>
+                        <div class="collection-description">
+                            Email collection extracted from DocumentCloud documents.
+                        </div>
+                        <div class="collection-date">Created ${createdDate}</div>
+                    </a>
+                `;
+            }).join('');
+
+            noCollections.style.display = 'none';
+        }
+
+        function showNoCollections() {
+            const container = document.getElementById('collections-container');
+            const loading = document.getElementById('loading');
+            const noCollections = document.getElementById('no-collections');
+
+            loading.style.display = 'none';
+            container.style.display = 'block';
+            noCollections.style.display = 'block';
+        }
+
+        // File upload handling
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.name.endsWith('.db')) {
+                // Redirect to main interface with uploaded file
+                window.location.href = '/?upload=1';
+            }
+        });
+
+        // Drag and drop
+        const uploadArea = document.getElementById('upload-area');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.db')) {
+                window.location.href = '/?upload=1';
+            }
+        });
+
+        // Load collections on page load
+        loadCollections();
+    </script>
+</body>
+</html>

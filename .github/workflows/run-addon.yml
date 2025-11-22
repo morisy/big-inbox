@@ -1,0 +1,13 @@
+name: Run Add-On
+
+on:
+  repository_dispatch:
+    types: [run-addon]
+
+jobs:
+  Run-Add-On:
+    uses: MuckRock/documentcloud-addon-workflows/.github/workflows/run-addon.yml@v1
+    secrets:
+      dc_username: ${{ secrets.DC_USERNAME }}
+      dc_password: ${{ secrets.DC_PASSWORD }}
+      token: ${{ secrets.GITHUB_TOKEN }}
