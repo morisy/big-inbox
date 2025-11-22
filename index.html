@@ -816,24 +816,34 @@
         // Initialize SQL.js
         async function initSqlJs() {
             try {
+                console.log('Starting SQL.js initialization...');
+                
+                // Detect mobile
+                const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+                if (isMobile) {
+                    console.log('Mobile device detected');
+                    document.getElementById('loading-text').textContent = 'Initializing database engine...';
+                }
+                
                 // Try to load SQL.js from CDN
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js';
                 
                 const loadPromise = new Promise((resolve, reject) => {
                     script.onload = resolve;
-                    script.onerror = reject;
+                    script.onerror = () => reject(new Error('Failed to load SQL.js script'));
                 });
                 
                 document.head.appendChild(script);
                 await loadPromise;
+                console.log('SQL.js script loaded');
                 
                 // Initialize SQL.js
                 SQL = await window.initSqlJs({
                     locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
                 });
                 
-                console.log('SQL.js loaded successfully');
+                console.log('SQL.js initialized successfully');
                 
                 // Check for URL parameter for database
                 const urlParams = new URLSearchParams(window.location.search);
@@ -881,6 +891,8 @@
 
         async function loadDatabaseFromUrl(collectionParam) {
             try {
+                console.log('Loading database for:', collectionParam);
+                
                 // Convert collection parameter to file path
                 let filename;
                 if (collectionParam.includes('.db')) {
@@ -891,17 +903,34 @@
                     filename = `collections/${collectionParam}.db`;
                 }
                 
+                // Use absolute path to ensure it works on all domains
+                const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
+                const fullPath = basePath + filename;
+                console.log('Fetching from:', fullPath);
+                
                 document.getElementById('loading-text').textContent = `Loading collection...`;
                 document.getElementById('db-filename').textContent = collectionParam;
                 document.getElementById('url-db-name').style.display = 'block';
                 
                 // Try to fetch the database file
-                const response = await fetch(filename);
+                const response = await fetch(fullPath);
+                console.log('Fetch response:', response.status, response.statusText);
+                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
+                // Check content length for mobile memory concerns
+                const contentLength = response.headers.get('content-length');
+                console.log('Database size:', contentLength, 'bytes');
+                
+                // For mobile, show progress
+                if (/Mobi|Android/i.test(navigator.userAgent) && contentLength && parseInt(contentLength) > 1024 * 1024) {
+                    document.getElementById('loading-text').textContent = `Loading collection (${Math.round(contentLength / 1024)} KB)...`;
+                }
+                
                 const data = new Uint8Array(await response.arrayBuffer());
+                console.log('Data loaded, size:', data.length);
                 db = new SQL.Database(data);
                 
                 // Check for collection metadata and update title
@@ -929,15 +958,28 @@
                 
             } catch (error) {
                 console.error('Failed to load database from URL:', error);
-                document.getElementById('loading-text').textContent = 
-                    `Failed to load collection "${collectionParam}". You can upload a database file instead.`;
                 
-                // Show upload area
-                setTimeout(() => {
-                    document.getElementById('loading-screen').style.display = 'none';
-                    document.querySelector('.app-container').style.display = 'flex';
-                    initializeUI();
-                }, 2000);
+                // More detailed error message for debugging
+                let errorMessage = `Failed to load collection "${collectionParam}".`;
+                if (error.message.includes('HTTP')) {
+                    errorMessage += ` Database file not found.`;
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage += ` Network error - please check your connection.`;
+                } else {
+                    errorMessage += ` Error: ${error.message}`;
+                }
+                
+                document.getElementById('loading-text').innerHTML = errorMessage + 
+                    '<br><br><a href="collections.html" style="color: var(--primary-color);">← Back to Collections</a>';
+                
+                // On mobile, show a simpler error
+                if (/Mobi|Android/i.test(navigator.userAgent)) {
+                    console.log('Mobile device detected, showing simplified error');
+                    document.getElementById('loading-text').innerHTML = 
+                        errorMessage + '<br><br><a href="collections.html" style="color: var(--primary-color);">← Try Another Collection</a>';
+                }
+                
+                // Don't auto-redirect on error, let user see the error
             }
         }
 
