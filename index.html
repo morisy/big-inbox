@@ -665,6 +665,9 @@
             </div>
             
             <div class="header-right">
+                <button class="icon-btn" id="permalink-btn" title="Copy Permalink" style="display: none;">
+                    <i class="material-icons">link</i>
+                </button>
                 <button class="icon-btn" id="help-btn" title="About">
                     <i class="material-icons">help_outline</i>
                 </button>
@@ -1101,6 +1104,7 @@
                     if (document.getElementById('email-detail').style.display === 'block') {
                         document.getElementById('email-detail').style.display = 'none';
                         document.getElementById('list-view').style.display = 'block';
+                        document.getElementById('permalink-btn').style.display = 'none';
                         window.history.pushState('', document.title, window.location.pathname + window.location.search);
                     }
                     
@@ -1122,6 +1126,7 @@
                     if (document.getElementById('email-detail').style.display === 'block') {
                         document.getElementById('email-detail').style.display = 'none';
                         document.getElementById('list-view').style.display = 'block';
+                        document.getElementById('permalink-btn').style.display = 'none';
                         window.history.pushState('', document.title, window.location.pathname + window.location.search);
                     }
                     
@@ -1143,6 +1148,7 @@
                 if (document.getElementById('email-detail').style.display === 'block') {
                     document.getElementById('email-detail').style.display = 'none';
                     document.getElementById('list-view').style.display = 'block';
+                    document.getElementById('permalink-btn').style.display = 'none';
                     window.history.pushState('', document.title, window.location.pathname + window.location.search);
                 }
                 
@@ -1194,6 +1200,8 @@
             document.getElementById('back-btn').addEventListener('click', () => {
                 document.getElementById('email-detail').style.display = 'none';
                 document.getElementById('list-view').style.display = 'block';
+                // Hide permalink button
+                document.getElementById('permalink-btn').style.display = 'none';
                 // Clear the hash to update the URL
                 window.history.pushState('', document.title, window.location.pathname + window.location.search);
             });
@@ -1208,6 +1216,17 @@
             const helpBtn = document.getElementById('help-btn');
             if (helpBtn) {
                 helpBtn.addEventListener('click', showHelp);
+            }
+            
+            // Permalink
+            const permalinkBtn = document.getElementById('permalink-btn');
+            if (permalinkBtn) {
+                permalinkBtn.addEventListener('click', () => {
+                    const emailId = permalinkBtn.getAttribute('data-email-id');
+                    if (emailId) {
+                        copyPermalink(emailId);
+                    }
+                });
             }
             
             // Click outside modal to close
@@ -1414,14 +1433,15 @@
                         <i class="material-icons" style="margin-right: 8px;">description</i>
                         View Original Document on DocumentCloud
                     </a>
-                </div>
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-                    <button onclick="copyPermalink('${email.document_id}')" style="background: var(--surface); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px 12px; color: var(--text-primary); cursor: pointer; display: inline-flex; align-items: center;">
-                        <i class="material-icons" style="margin-right: 8px; font-size: 16px;">link</i>
-                        Copy Permalink
-                    </button>
                 </div>`;
                 document.getElementById('detail-body').innerHTML = escapeHtml(email.body || '(no content)') + linkHtml;
+                
+                // Show permalink button in header and store current email ID
+                const permalinkBtn = document.getElementById('permalink-btn');
+                if (permalinkBtn) {
+                    permalinkBtn.style.display = 'block';
+                    permalinkBtn.setAttribute('data-email-id', email.document_id);
+                }
             }
             
             // Mark as read
@@ -1484,6 +1504,7 @@
             if (document.getElementById('email-detail').style.display === 'block') {
                 document.getElementById('email-detail').style.display = 'none';
                 document.getElementById('list-view').style.display = 'block';
+                document.getElementById('permalink-btn').style.display = 'none';
                 window.history.pushState('', document.title, window.location.pathname + window.location.search);
             }
             
@@ -1715,6 +1736,7 @@
                 if (document.getElementById('email-detail').style.display === 'block') {
                     document.getElementById('email-detail').style.display = 'none';
                     document.getElementById('list-view').style.display = 'block';
+                    document.getElementById('permalink-btn').style.display = 'none';
                 }
             }
         }
