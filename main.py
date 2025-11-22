@@ -500,7 +500,21 @@ class OpenInbox(AddOn):
         conn.commit()
         conn.close()
         
-        logger.info(f"Created database {db_path} with {len(email_records)} records")
+        # Validate the created database
+        try:
+            with open(db_path, 'rb') as f:
+                db_content = f.read()
+            logger.info(f"Created database {db_path} with {len(email_records)} records, size: {len(db_content)} bytes")
+            
+            # Quick validation
+            if not db_content.startswith(b'SQLite format 3'):
+                logger.error(f"Created database has invalid SQLite header!")
+            else:
+                logger.info("Database header validation passed")
+                
+        except Exception as e:
+            logger.error(f"Error validating created database: {e}")
+        
         return db_path
     
     def deploy_to_github(self, db_path: str, database_name: str, collection_id: str, safe_collection_name: str) -> Optional[str]:
@@ -561,14 +575,37 @@ class OpenInbox(AddOn):
             
             logger.info(f"Reading database file: {db_path}")
             
-            # Read database file
+            # Read and validate database file
             with open(db_path, 'rb') as f:
                 content = f.read()
             
             logger.info(f"Database file size: {len(content)} bytes")
             
+            # Validate it's a proper SQLite database
+            if not content.startswith(b'SQLite format 3'):
+                logger.error("Database file does not have valid SQLite header!")
+                return False
+            
+            # Test that the database can be opened
+            try:
+                test_conn = sqlite3.connect(db_path)
+                test_cursor = test_conn.cursor()
+                test_cursor.execute("SELECT COUNT(*) FROM emails")
+                count = test_cursor.fetchone()[0]
+                test_conn.close()
+                logger.info(f"Database validation successful: {count} emails")
+            except Exception as e:
+                logger.error(f"Database validation failed: {e}")
+                return False
+            
+            # Check file size limit (GitHub API limit is 100MB, but we should be conservative)
+            if len(content) > 50 * 1024 * 1024:  # 50MB limit
+                logger.error(f"Database file too large for GitHub API: {len(content)} bytes")
+                return False
+            
             # Encode for GitHub API
             content_encoded = base64.b64encode(content).decode('utf-8')
+            logger.info(f"Base64 encoded size: {len(content_encoded)} characters")
             
             # File path in repository
             file_path = f"collections/{database_name}"
@@ -597,6 +634,15 @@ class OpenInbox(AddOn):
                     content_encoded
                 )
                 logger.info(f"Created new file: {file_path}")
+            
+            # Verify the committed file
+            try:
+                committed_file = repo.get_contents(file_path)
+                logger.info(f"Verification: Committed file size: {committed_file.size} bytes")
+                if committed_file.size != len(content):
+                    logger.warning(f"Size mismatch! Original: {len(content)}, Committed: {committed_file.size}")
+            except Exception as e:
+                logger.warning(f"Could not verify committed file: {e}")
             
             return True
             
