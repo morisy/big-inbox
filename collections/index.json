@@ -1,5 +1,13 @@
 [
   {
+    "id": "01c70a04_More_Jeb",
+    "filename": "01c70a04_More_Jeb_batch1.db",
+    "displayName": "More Jeb",
+    "description": "Email collection with 50 emails",
+    "emailCount": 50,
+    "created": "2025-11-22T18:59:30.999591Z"
+  },
+  {
     "id": "e99e300c_Jeb_",
     "filename": "e99e300c_Jeb__batch1.db",
     "displayName": "Jeb ",
