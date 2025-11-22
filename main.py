@@ -202,17 +202,39 @@ class OpenInbox(AddOn):
                     elif isinstance(values, str):
                         tags_dict[key.lower().strip('_')] = values
             
-            # Extract sender information
+            # Extract sender information from tags
             sender_email, sender_name = self.extract_person_info(tags_dict, ['from', 'sender', 'author'])
             
-            # Extract recipient information  
+            # Extract recipient information from tags
             recipient_email, recipient_name = self.extract_person_info(tags_dict, ['to', 'recipient', 'addressee'])
             
-            # Extract subject
-            subject = self.extract_tag_value(tags_dict, ['subject', 'title', 'topic']) or doc.title or f"Document {doc.id}"
+            # Extract subject from tags
+            subject = self.extract_tag_value(tags_dict, ['subject', 'title', 'topic'])
             
-            # Extract date (try docDate first, then other date fields)
-            date_sent = self.extract_date(tags_dict, date_format, ['docdate', 'date', 'sent', 'created', 'timestamp']) or doc.created_at
+            # Extract date from tags
+            date_sent = self.extract_date(tags_dict, date_format, ['docdate', 'date', 'sent', 'created', 'timestamp'])
+            
+            # If no metadata found in tags, try regex extraction from document text
+            if not any([sender_email, recipient_email, subject, date_sent]):
+                logger.info(f"No metadata in tags for document {doc.id}, trying regex extraction")
+                regex_metadata = self.extract_email_metadata_from_text(doc_text)
+                
+                # Use regex results as fallback
+                if not sender_email and 'from' in regex_metadata:
+                    sender_email, sender_name = self.parse_person_string(regex_metadata['from'])
+                    
+                if not recipient_email and 'to' in regex_metadata:
+                    recipient_email, recipient_name = self.parse_person_string(regex_metadata['to'])
+                    
+                if not subject and 'subject' in regex_metadata:
+                    subject = regex_metadata['subject']
+                    
+                if not date_sent and 'date' in regex_metadata:
+                    date_sent = self.parse_date_string(regex_metadata['date'], date_format)
+            
+            # Final fallbacks
+            subject = subject or doc.title or f"Document {doc.id}"
+            date_sent = date_sent or doc.created_at
             
             # Generate preview
             preview = self.generate_preview(doc_text)
@@ -297,9 +319,19 @@ class OpenInbox(AddOn):
             
         # Common date formats to try
         formats = [
+            # ISO formats
             '%Y-%m-%dT%H:%M:%S.%fZ',  # ISO format with milliseconds: 2009-05-02T04:00:00.000Z
             '%Y-%m-%dT%H:%M:%SZ',     # ISO format: 2009-05-02T04:00:00Z
             '%Y-%m-%dT%H:%M:%S',      # ISO format without Z
+            
+            # Email-specific formats from samples
+            '%A, %B %d, %Y %I:%M %p',    # Sunday, November 14, 2004 8:54 PM
+            '%A, %B %d, %Y %I:%M:%S %p', # Sunday, November 14, 2004 8:54:32 PM
+            '%A, %b %d, %Y %I:%M %p',    # Sun, Nov 14, 2004 8:54 PM
+            '%B %d, %Y %I:%M %p',        # November 14, 2004 8:54 PM
+            '%b %d, %Y %I:%M %p',        # Nov 14, 2004 8:54 PM
+            
+            # Standard formats
             '%Y-%m-%d %H:%M:%S',
             '%Y-%m-%d %H:%M',
             '%Y-%m-%d',
@@ -315,7 +347,7 @@ class OpenInbox(AddOn):
             '%d %b %Y',
             '%Y/%m/%d',
             '%m-%d-%Y',
-            '%d--%Y'
+            '%d-%m-%Y'
         ]
         
         # Try the hint format first if provided
@@ -333,6 +365,102 @@ class OpenInbox(AddOn):
                 continue
                 
         logger.warning(f"Could not parse date: {date_str}")
+        return None
+    
+    def extract_email_metadata_from_text(self, doc_text: str) -> Dict[str, str]:
+        """Extract email metadata using regex patterns when tags are not available"""
+        metadata = {}
+        
+        # Get first part of document (email headers are usually at the top)
+        header_text = doc_text[:2000]  # First 2000 characters
+        
+        # Extract From field
+        from_match = self.extract_from_field(header_text)
+        if from_match:
+            metadata['from'] = from_match
+            
+        # Extract To field  
+        to_match = self.extract_to_field(header_text)
+        if to_match:
+            metadata['to'] = to_match
+            
+        # Extract Subject field
+        subject_match = self.extract_subject_field(header_text)
+        if subject_match:
+            metadata['subject'] = subject_match
+            
+        # Extract Date field
+        date_match = self.extract_date_field(header_text)
+        if date_match:
+            metadata['date'] = date_match
+            
+        return metadata
+    
+    def extract_from_field(self, text: str) -> Optional[str]:
+        """Extract sender information using regex"""
+        patterns = [
+            r'From:\s*([^\r\n]+)',           # From: sender@example.com
+            r'FROM:\s*([^\r\n]+)',           # FROM: (case insensitive)
+            r'Sender:\s*([^\r\n]+)',         # Sender: alternative
+            r'From\s+([^\r\n]+@[^\r\n\s]+)', # From email@domain.com (no colon)
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text, re.MULTILINE | re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        return None
+    
+    def extract_to_field(self, text: str) -> Optional[str]:
+        """Extract recipient information using regex"""
+        patterns = [
+            r'To:\s*([^\r\n]+)',             # To: recipient@example.com
+            r'TO:\s*([^\r\n]+)',             # TO: (case insensitive)  
+            r'Recipient:\s*([^\r\n]+)',      # Recipient: alternative
+            r'To\s+([^\r\n]+@[^\r\n\s]+)',   # To email@domain.com (no colon)
+            r'Cc:\s*([^\r\n]+)',             # Cc: alternative recipients
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text, re.MULTILINE | re.IGNORECASE)
+            if match:
+                # Clean up common artifacts
+                result = match.group(1).strip()
+                # Handle semicolon-separated multiple recipients
+                if ';' in result:
+                    result = result.split(';')[0].strip()
+                return result
+        return None
+    
+    def extract_subject_field(self, text: str) -> Optional[str]:
+        """Extract subject using regex"""
+        patterns = [
+            r'Subject:\s*([^\r\n]+)',        # Subject: Email subject
+            r'SUBJECT:\s*([^\r\n]+)',        # SUBJECT: (case insensitive)
+            r'Re:\s*([^\r\n]+)',             # Re: (reply indicator)
+            r'Subj:\s*([^\r\n]+)',           # Subj: abbreviation
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text, re.MULTILINE | re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        return None
+    
+    def extract_date_field(self, text: str) -> Optional[str]:
+        """Extract date using regex"""
+        patterns = [
+            r'Sent:\s*([^\r\n]+)',           # Sent: Monday, January 1, 2007 11:31 AM
+            r'Date:\s*([^\r\n]+)',           # Date: standard email header
+            r'SENT:\s*([^\r\n]+)',           # SENT: (case insensitive)
+            r'DATE:\s*([^\r\n]+)',           # DATE: (case insensitive)
+            r'Received:\s*([^\r\n]+)',       # Received: alternative
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text, re.MULTILINE | re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
         return None
     
     def generate_preview(self, text: str, max_length: int = 200) -> str:

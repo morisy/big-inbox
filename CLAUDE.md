@@ -21,6 +21,7 @@ Open Inbox is a DocumentCloud Add-On that converts DocumentCloud documents into 
 
 ### Working Features
 - Extracts email metadata from DocumentCloud document tags (from, to, subject, date)
+- **NEW: Regex fallback extraction** - When tags are not available, uses regex patterns to extract metadata from document text
 - Creates SQLite databases with email-like structure
 - Commits databases to GitHub repository via API
 - Web interface for browsing/searching emails
@@ -133,10 +134,29 @@ git push origin main
 - localStorage: ~10MB (skip on mobile)
 - SQL.js can handle large databases client-side
 
+## Regex Email Extraction
+
+### When Tags Are Missing
+The Add-On now includes regex-based extraction as a fallback when DocumentCloud tags are not available. It looks for common email patterns in the document text:
+
+#### Supported Patterns
+- **From:** `From: sender@example.com` or `From: John Doe <john@example.com>`
+- **To:** `To: recipient@example.com` (also handles Cc: lines)
+- **Subject:** `Subject: Email subject line`
+- **Date:** `Sent: Monday, January 1, 2007 11:31 AM` (supports various formats)
+
+#### Date Formats Supported
+- `Sunday, November 14, 2004 8:54 PM`
+- `January 1, 2007 11:31 AM`
+- Standard ISO dates and many other common formats
+
+### Testing
+Use `test_regex_extraction.py` to test regex patterns on sample emails in the `sample_emails/` directory.
+
 ## Future Improvements
 
 ### High Priority
-1. Auto-update collections/index.json when creating new databases
+1. **Auto-update collections/index.json when creating new databases** (currently manual)
 2. Add pagination or virtual scrolling for large email lists
 3. Improve mobile performance with lazy loading
 
