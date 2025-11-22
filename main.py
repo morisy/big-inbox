@@ -725,8 +725,8 @@ class OpenInbox(AddOn):
                 logger.error(f"Database validation failed: {e}")
                 return False
             
-            # Check file size limit (GitHub API limit is 100MB, but we should be conservative)
-            if len(content) > 50 * 1024 * 1024:  # 50MB limit
+            # Check file size limit (GitHub API limit is 100MB, but we should be conservative)  
+            if len(content) > 95 * 1024 * 1024:  # 95MB limit (close to GitHub's 100MB)
                 logger.error(f"Database file too large for GitHub API: {len(content)} bytes")
                 return False
             
