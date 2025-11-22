@@ -1,26 +1,49 @@
 title: Open Inbox
 description: Convert DocumentCloud documents into a browsable email interface
+instructions: |
+  This Add-On converts DocumentCloud documents into a searchable email-like interface.
+  
+  **How it works:**
+  1. Extracts metadata from document tags (From, To, Date, Subject)
+  2. Creates a SQLite database with email-like structure
+  3. Deploys to GitHub Pages for browsing
+  4. Sends you an email when ready
+  
+  **Document Tags:**
+  The Add-On looks for these document metadata fields:
+  - `from`, `sender`, `author` → Email sender
+  - `to`, `recipient`, `addressee` → Email recipient  
+  - `date`, `sent`, `created`, `docDate` → Email date
+  - `subject`, `title`, `topic` → Email subject
+  
+  **Requirements:**
+  - Documents must be publicly accessible
+  - GitHub Pages must be enabled on the repository
+  
+  **Example result:**
+  `https://morisy.github.io/open-inbox/?emails=abc123_collection-name`
 type: object
 documents:
-  - selected
-  - query
-categories:
-  - export
-  - extraction
-  - bulk
+ - selected
+ - query
 properties:
-  collection_name:
-    title: Collection Name
-    type: string
-    description: "Name for this email collection (e.g., 'clinton-emails', 'foia-request-2023')"
-    
-  date_format:
-    title: Date Format in Tags
-    type: string
-    enum:
-      - auto
-      - "%Y-%m-%d"
-      - "%m/%d/%Y"
-      - "%d/%m/%Y"
-    default: auto
-    description: "Expected date format in document tags"
+ collection_name:
+   title: Collection Name
+   type: string
+   description: "Name for this email collection (e.g., 'clinton-emails', 'foia-request-2023')"
+   
+ date_format:
+   title: Date Format in Tags
+   type: string
+   enum:
+     - auto
+     - "%Y-%m-%d"
+     - "%m/%d/%Y"
+     - "%d/%m/%Y"
+   default: auto
+   description: "Expected date format in document tags"
+categories:
+ - export
+ - extraction
+ - bulk
+version: 2
