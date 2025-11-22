@@ -857,22 +857,11 @@
                         return;
                     }
                     
-                    // Check for saved database in localStorage
-                    const savedDb = localStorage.getItem('emailDb');
-                    if (savedDb) {
-                        try {
-                            const buf = Uint8Array.from(atob(savedDb), c => c.charCodeAt(0));
-                            db = new SQL.Database(buf);
-                            onDatabaseLoaded();
-                        } catch (e) {
-                            console.error('Failed to load saved database:', e);
-                            localStorage.removeItem('emailDb');
-                            redirectToCollections();
-                        }
-                    } else {
-                        // No specific collection requested, redirect to collections page
-                        redirectToCollections();
-                    }
+                    // No specific collection requested, redirect to collections page
+                    // Clear any cached database to ensure clean redirect
+                    localStorage.removeItem('emailDb');
+                    redirectToCollections();
+                    return;
                 }
                 
                 // Hide loading screen and show app

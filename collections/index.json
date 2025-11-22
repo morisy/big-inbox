@@ -1,0 +1,26 @@
+[
+  {
+    "id": "59de7bde_clinton-email-test", 
+    "filename": "59de7bde_clinton-email-test.db",
+    "displayName": "Clinton Email Test",
+    "description": "Single Clinton email with proper metadata extraction",
+    "emailCount": 1,
+    "created": "2024-11-22T00:00:00Z"
+  },
+  {
+    "id": "6280416c_test-project-collection",
+    "filename": "6280416c_test-project-collection.db", 
+    "displayName": "Test Project Collection",
+    "description": "6-document project collection demonstrating bulk processing",
+    "emailCount": 6,
+    "created": "2024-11-22T00:00:00Z"
+  },
+  {
+    "id": "c9faa0d3_clinton-emails-project",
+    "filename": "c9faa0d3_clinton-emails-project.db",
+    "displayName": "Clinton Emails Project", 
+    "description": "Clinton emails project with real metadata extraction",
+    "emailCount": 6,
+    "created": "2024-11-22T00:00:00Z"
+  }
+]
