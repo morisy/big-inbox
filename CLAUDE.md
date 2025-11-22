@@ -165,6 +165,33 @@ git push origin main
 5. Commits to GitHub via API
 6. Returns GitHub Pages URL to user
 
+### Common Add-On Methods
+```python
+# From documentcloud.addon import AddOn
+self.set_progress(0-100)  # Update progress bar
+self.set_message("Status")  # Update status message
+self.upload_file(file)  # Upload file back to DocumentCloud
+self.send_mail("Subject", "Body")  # Email user
+```
+
+### Accessing Document Data
+```python
+# Document metadata stored in doc.data dictionary
+doc.data.get('from')  # Get sender
+doc.data.get('to')    # Get recipient
+doc.data.get('subject')  # Get subject
+doc.data.get('docDate')  # Get document date
+
+# Document properties
+doc.id  # Unique document ID
+doc.title  # Document title
+doc.full_text  # Full extracted text
+doc.page_count  # Number of pages
+doc.source  # Source of document
+doc.created_at  # When uploaded
+doc.canonical_url  # Public URL
+```
+
 ## Security Considerations
 - Never commit secrets/keys to repository
 - Document URLs are public in DocumentCloud
@@ -172,6 +199,24 @@ git push origin main
 - No authentication on the web interface
 
 ## Contact & Resources
-- DocumentCloud Add-On Documentation: https://github.com/MuckRock/documentcloud-hello-world-addon/wiki
-- Open Inbox Add-On Page: https://www.documentcloud.org/add-ons/morisy/open-inbox/
-- Repository: https://github.com/morisy/open-inbox
+
+### DocumentCloud Documentation
+- **Add-On Tutorial**: https://github.com/MuckRock/documentcloud-hello-world-addon/wiki
+- **Add-On Python Library**: https://github.com/MuckRock/python-documentcloud-addon
+- **DocumentCloud API**: https://www.documentcloud.org/help/api/
+- **Python Client Library**: https://github.com/MuckRock/python-documentcloud
+- **Add-On Development Guide**: https://github.com/MuckRock/documentcloud-hello-world-addon/wiki/Add-On-Development
+
+### Key API Endpoints
+- Document data structure: https://www.documentcloud.org/help/api/#documents
+- Document metadata (doc.data): Stored as key-value pairs accessible via `doc.data`
+- Full text access: `doc.full_text` or `doc.get_full_text()`
+
+### Reusable GitHub Workflows
+- **Official Workflow**: https://github.com/MuckRock/documentcloud-addon-workflows
+- Used in `.github/workflows/run-addon.yml`
+
+### This Add-On
+- **Open Inbox Add-On Page**: https://www.documentcloud.org/add-ons/morisy/open-inbox/
+- **Repository**: https://github.com/morisy/open-inbox
+- **Live Site**: https://morisy.github.io/open-inbox/
