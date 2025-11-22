@@ -358,17 +358,6 @@
             margin-right: 12px;
         }
 
-        .star-btn {
-            background: none;
-            border: none;
-            padding: 4px;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
-
-        .star-btn.starred {
-            color: var(--star-color);
-        }
 
         .email-sender {
             min-width: 180px;
@@ -662,7 +651,7 @@
                 <button class="menu-btn" id="menu-toggle">
                     <i class="material-icons">menu</i>
                 </button>
-                <div class="app-title">Open Inbox</div>
+                <div class="app-title" id="app-title">Open Inbox</div>
             </div>
             
             <div class="header-center">
@@ -676,8 +665,8 @@
             </div>
             
             <div class="header-right">
-                <button class="icon-btn" id="upload-btn" title="Upload Database">
-                    <i class="material-icons">upload_file</i>
+                <button class="icon-btn" id="help-btn" title="About">
+                    <i class="material-icons">help_outline</i>
                 </button>
                 <button class="icon-btn" id="stats-btn" title="Statistics">
                     <i class="material-icons">bar_chart</i>
@@ -696,16 +685,6 @@
                         <i class="material-icons">inbox</i>
                         <span>All Emails</span>
                         <span class="nav-count" id="inbox-count">0</span>
-                    </div>
-                    <div class="nav-item" data-view="starred">
-                        <i class="material-icons">star</i>
-                        <span>Starred</span>
-                        <span class="nav-count" id="starred-count">0</span>
-                    </div>
-                    <div class="nav-item" data-view="sent">
-                        <i class="material-icons">send</i>
-                        <span>Sent</span>
-                        <span class="nav-count" id="sent-count">0</span>
                     </div>
                 </div>
                 
@@ -805,6 +784,23 @@
             <div id="stats-content"></div>
         </div>
     </div>
+    
+    <!-- Help Modal -->
+    <div class="modal" id="help-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">About Open Inbox</h2>
+                <button class="close-modal" onclick="closeHelpModal()">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <div style="padding: 20px;">
+                <p>Powered by <a href="https://www.documentcloud.org/" target="_blank" style="color: var(--primary-color);">DocumentCloud</a> 
+                <a href="https://www.documentcloud.org/add-ons/morisy/open-inbox/" target="_blank" style="color: var(--primary-color);">Open Inbox Add-On</a></p>
+                <p style="margin-top: 16px;">Open Inbox converts DocumentCloud documents into browsable email-like interfaces for easy exploration of document collections.</p>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Global variables
@@ -815,7 +811,6 @@
         let itemsPerPage = 25;
         let searchQuery = '';
         let currentEmails = [];
-        let starredEmails = new Set();
         let readEmails = new Set();
 
         // Initialize SQL.js
@@ -915,7 +910,10 @@
                     if (collectionInfo[0] && collectionInfo[0].values[0]) {
                         const displayName = collectionInfo[0].values[0][0];
                         document.title = `${displayName} - Open Inbox`;
-                        document.getElementById('db-filename').textContent = displayName;
+                        document.getElementById('app-title').textContent = displayName;
+                        if (document.getElementById('db-filename')) {
+                            document.getElementById('db-filename').textContent = displayName;
+                        }
                     }
                 } catch (e) {
                     // No collection metadata, use original title
@@ -1137,10 +1135,19 @@
             // Stats
             document.getElementById('stats-btn').addEventListener('click', showStats);
             
+            // Help
+            document.getElementById('help-btn').addEventListener('click', showHelp);
+            
             // Click outside modal to close
             document.getElementById('stats-modal').addEventListener('click', (e) => {
                 if (e.target.id === 'stats-modal') {
                     closeStatsModal();
+                }
+            });
+            
+            document.getElementById('help-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'help-modal') {
+                    closeHelpModal();
                 }
             });
         }
@@ -1278,11 +1285,6 @@
                         <div class="email-checkbox">
                             <input type="checkbox">
                         </div>
-                        <div class="email-star">
-                            <button class="star-btn ${isStarred ? 'starred' : ''}" onclick="toggleStar('${email.document_id}', event)">
-                                <i class="material-icons">${isStarred ? 'star' : 'star_border'}</i>
-                            </button>
-                        </div>
                         <div class="email-sender">
                             <span class="sender-name">${escapeHtml(email.sender_name || email.sender_email || 'Unknown')}</span>
                         </div>
@@ -1316,6 +1318,26 @@
             document.getElementById('detail-date').textContent = formatDate(email.date_sent);
             document.getElementById('detail-body').textContent = email.body || '(no content)';
             
+            // Add link to original document if available
+            let metadata = {};
+            try {
+                if (email.metadata) {
+                    metadata = typeof email.metadata === 'string' ? JSON.parse(email.metadata) : email.metadata;
+                }
+            } catch (e) {
+                console.error('Error parsing metadata:', e);
+            }
+            
+            if (metadata.document_url) {
+                const linkHtml = `<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                    <a href="${metadata.document_url}" target="_blank" style="color: var(--primary-color); text-decoration: none; display: inline-flex; align-items: center;">
+                        <i class="material-icons" style="margin-right: 8px;">description</i>
+                        View Original Document on DocumentCloud
+                    </a>
+                </div>`;
+                document.getElementById('detail-body').innerHTML = escapeHtml(email.body || '(no content)') + linkHtml;
+            }
+            
             // Mark as read
             if (!readEmails.has(email.document_id)) {
                 readEmails.add(email.document_id);
@@ -1323,34 +1345,6 @@
             }
         }
 
-        function toggleStar(emailId, event) {
-            event.stopPropagation();
-            
-            if (starredEmails.has(emailId)) {
-                starredEmails.delete(emailId);
-            } else {
-                starredEmails.add(emailId);
-            }
-            
-            localStorage.setItem('starredEmails', JSON.stringify(Array.from(starredEmails)));
-            
-            // Update UI
-            const row = document.querySelector(`.email-row[data-id="${emailId}"]`);
-            if (row) {
-                const btn = row.querySelector('.star-btn');
-                const icon = btn.querySelector('.material-icons');
-                
-                if (starredEmails.has(emailId)) {
-                    btn.classList.add('starred');
-                    icon.textContent = 'star';
-                } else {
-                    btn.classList.remove('starred');
-                    icon.textContent = 'star_border';
-                }
-            }
-            
-            updateCounts();
-        }
 
         function loadContacts() {
             if (!db) return;
@@ -1423,13 +1417,6 @@
                 const total = totalResult[0] ? totalResult[0].values[0][0] : 0;
                 document.getElementById('inbox-count').textContent = total;
                 
-                // Starred
-                document.getElementById('starred-count').textContent = starredEmails.size;
-                
-                // Sent
-                const sentResult = db.exec("SELECT COUNT(*) FROM emails WHERE folder = 'sent'");
-                const sent = sentResult[0] ? sentResult[0].values[0][0] : 0;
-                document.getElementById('sent-count').textContent = sent;
             } catch (error) {
                 console.error('Error updating counts:', error);
             }
@@ -1456,11 +1443,6 @@
             try {
                 let query = "SELECT COUNT(*) FROM emails";
                 
-                if (currentView === 'starred') {
-                    return starredEmails.size;
-                } else if (currentView === 'sent') {
-                    query += " WHERE folder = 'sent'";
-                }
                 
                 const result = db.exec(query);
                 return result[0] ? result[0].values[0][0] : 0;
@@ -1516,6 +1498,14 @@
 
         function closeStatsModal() {
             document.getElementById('stats-modal').classList.remove('show');
+        }
+        
+        function showHelp() {
+            document.getElementById('help-modal').classList.add('show');
+        }
+        
+        function closeHelpModal() {
+            document.getElementById('help-modal').classList.remove('show');
         }
 
         function formatDate(dateStr) {
