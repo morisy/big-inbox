@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Open Inbox - Email search and analysis tool</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <title>Open Inbox - Progressive Email Explorer</title>
     <style>
         * {
             margin: 0;
@@ -13,1787 +11,1072 @@
             box-sizing: border-box;
         }
 
-        :root {
-            --primary-color: #1a73e8;
-            --text-primary: #202124;
-            --text-secondary: #5f6368;
-            --border-color: #dadce0;
-            --hover-bg: #f1f3f4;
-            --selected-bg: #e8f0fe;
-            --sidebar-width: 256px;
-            --header-height: 64px;
-            --star-color: #fbbc04;
-            --unread-bg: #ffffff;
-            --read-bg: #f8f9fa;
-        }
-
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--text-primary);
-            background: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            color: #202124;
             height: 100vh;
             overflow: hidden;
         }
 
-        .app-container {
-            display: flex;
-            flex-direction: column;
+        #app {
             height: 100vh;
-        }
-
-        /* Loading Screen */
-        #loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: white;
-            z-index: 9999;
+            width: 100vw;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .loading-spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid var(--border-color);
-            border-top-color: var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            margin-top: 16px;
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        .loading-error {
-            margin-top: 16px;
-            color: #d93025;
-            font-size: 14px;
-            text-align: center;
-            max-width: 400px;
-        }
-
-        .retry-btn {
-            margin-top: 16px;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
         }
 
         /* Header */
-        .app-header {
-            height: var(--header-height);
+        .header {
             background: white;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid #e0e0e0;
+            padding: 12px 20px;
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            gap: 16px;
+            gap: 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            flex-shrink: 0;
         }
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .menu-btn {
-            background: none;
-            border: none;
-            padding: 8px;
-            cursor: pointer;
-            border-radius: 50%;
-            color: var(--text-secondary);
-        }
-
-        .menu-btn:hover {
-            background: var(--hover-bg);
-        }
-
-        .app-title {
+        .logo {
             font-size: 20px;
             font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .header-center {
-            flex: 1;
-            max-width: 720px;
-            margin: 0 auto;
+            color: #1a73e8;
         }
 
         .search-container {
-            background: var(--hover-bg);
-            border-radius: 8px;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: box-shadow 0.2s;
+        }
+
+        .search-box:focus {
+            box-shadow: 0 1px 6px rgba(32,33,36,0.28);
+            border-color: transparent;
+        }
+
+        .header-actions {
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            height: 46px;
+            gap: 12px;
+            color: #5f6368;
+            font-size: 14px;
         }
 
-        .search-container:focus-within {
-            background: white;
-            box-shadow: 0 1px 6px rgba(32,33,36,.28);
-        }
-
-        .search-container input {
-            flex: 1;
-            border: none;
+        .header-actions button {
             background: none;
-            outline: none;
-            padding: 0 12px;
-            font-size: 15px;
-        }
-
-        .header-right {
-            display: flex;
-            gap: 8px;
-        }
-
-        .icon-btn {
-            background: none;
-            border: none;
-            padding: 8px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 8px 12px;
             cursor: pointer;
-            border-radius: 50%;
-            color: var(--text-secondary);
+            color: #5f6368;
+            font-size: 14px;
         }
 
-        .icon-btn:hover {
-            background: var(--hover-bg);
+        .header-actions button:hover {
+            border-color: #1a73e8;
+            color: #1a73e8;
         }
 
-        /* Body Layout */
-        .app-body {
-            display: flex;
+        /* Main Layout */
+        .main-container {
             flex: 1;
+            display: flex;
             overflow: hidden;
+            min-height: 0; /* Important for flex layouts */
         }
 
         /* Sidebar */
         .sidebar {
-            width: var(--sidebar-width);
+            width: 260px;
             background: white;
-            border-right: 1px solid var(--border-color);
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Sidebar collapsed state handled in media queries */
-
-        .nav-section {
-            padding: 8px 0;
+            flex-shrink: 0;
         }
 
         .nav-item {
+            padding: 10px 16px;
+            border-radius: 0 16px 16px 0;
+            cursor: pointer;
+            margin-bottom: 4px;
             display: flex;
             align-items: center;
-            padding: 10px 24px;
-            cursor: pointer;
-            gap: 16px;
-            transition: background-color 0.2s;
+            gap: 12px;
+            color: #5f6368;
+            font-size: 14px;
+            transition: all 0.2s;
+            justify-content: space-between;
         }
 
         .nav-item:hover {
-            background: var(--hover-bg);
+            background: #f1f3f4;
         }
 
         .nav-item.active {
-            background: var(--selected-bg);
-            color: var(--primary-color);
+            background: #e8f0fe;
+            color: #001d35;
             font-weight: 500;
         }
 
-        .nav-item .material-icons {
-            font-size: 20px;
-            color: var(--text-secondary);
-        }
-
-        .nav-item.active .material-icons {
-            color: var(--primary-color);
-        }
-
-        .nav-count {
-            margin-left: auto;
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .contacts-section {
-            flex: 1;
-            overflow-y: auto;
-            border-top: 1px solid var(--border-color);
-            margin-top: 8px;
-            padding-top: 8px;
-        }
-
-        .section-title {
-            padding: 8px 24px;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-        }
-
-        .contact-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 24px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .contact-item:hover {
-            background: var(--hover-bg);
-        }
-
-        .contact-count {
-            margin-left: auto;
+        .count {
             font-size: 12px;
-            color: var(--text-secondary);
+            color: #5f6368;
+            background: #f8f9fa;
+            padding: 2px 8px;
+            border-radius: 12px;
         }
 
-        /* Main Content */
-        .main-content {
+        /* Email List */
+        .email-list-container {
             flex: 1;
-            background: white;
             display: flex;
             flex-direction: column;
+            background: white;
+            min-width: 0;
         }
 
-        /* Toolbar */
-        .inbox-toolbar {
+        .email-list-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            flex-shrink: 0;
         }
 
-        .toolbar-left {
+        .email-list-header-left {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .toolbar-right {
-            display: flex;
-            align-items: center;
-            gap: 16px;
+        .email-list-header-left input[type="checkbox"] {
+            margin: 0;
         }
 
-        .pagination-info {
-            font-size: 13px;
-            color: var(--text-secondary);
+        #email-count {
+            font-size: 14px;
+            color: #5f6368;
         }
 
-        .pagination-controls {
-            display: flex;
-            gap: 4px;
-        }
-
-        .page-btn {
-            background: none;
-            border: none;
-            padding: 4px;
-            cursor: pointer;
-            color: var(--text-secondary);
+        #sort-by {
+            padding: 6px 12px;
+            border: 1px solid #dadce0;
             border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            color: #3c4043;
         }
 
-        .page-btn:hover:not(:disabled) {
-            background: var(--hover-bg);
-        }
-
-        .page-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        /* Email List */
         .email-list {
             flex: 1;
             overflow-y: auto;
+            min-height: 0;
         }
 
-        .email-row {
+        .email-item {
             display: flex;
             align-items: center;
-            padding: 8px 16px;
-            border-bottom: 1px solid #f1f3f4;
+            padding: 8px 20px;
+            border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
-            min-height: 44px;
-            background: var(--read-bg);
+            transition: background 0.1s;
+            gap: 16px;
         }
 
-        .email-row:hover {
-            background: var(--hover-bg);
+        .email-item:hover {
+            background: #f8f9fa;
+            box-shadow: inset 1px 0 0 #dadce0, inset -1px 0 0 #dadce0;
         }
 
-        .email-row.unread {
-            background: var(--unread-bg);
+        .email-item.read {
+            background: #fafafa;
+            color: #3c4043;
+        }
+
+        .email-item.unread {
+            background: white;
             font-weight: 500;
         }
 
         .email-checkbox {
-            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #dadce0;
+            border-radius: 3px;
+            cursor: pointer;
+            flex-shrink: 0;
         }
-
-        .email-star {
-            margin-right: 12px;
-        }
-
 
         .email-sender {
-            min-width: 180px;
-            margin-right: 16px;
-        }
-
-        .sender-name {
+            min-width: 200px;
+            font-size: 14px;
+            color: #202124;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .email-content {
             flex: 1;
-            display: flex;
-            overflow: hidden;
-            margin-right: 16px;
+            min-width: 0;
         }
 
         .email-subject {
-            font-weight: 500;
-            margin-right: 8px;
+            font-size: 14px;
+            color: #202124;
+            margin-bottom: 2px;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .email-preview {
-            color: var(--text-secondary);
+            font-size: 13px;
+            color: #5f6368;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
-            font-weight: normal;
         }
 
         .email-date {
             font-size: 13px;
-            color: var(--text-secondary);
+            color: #5f6368;
             white-space: nowrap;
+            min-width: 80px;
+            text-align: right;
+            flex-shrink: 0;
         }
 
-        .email-attachment {
-            margin-left: 8px;
-            color: var(--text-secondary);
-        }
-
-        /* Upload Area */
-        .upload-container {
-            padding: 48px;
-            text-align: center;
-        }
-
-        .upload-area {
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 48px;
-            background: var(--hover-bg);
-        }
-
-        .upload-area.dragover {
-            background: var(--selected-bg);
-            border-color: var(--primary-color);
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-        }
-
-        .upload-text {
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-        }
-
-        .file-input {
+        /* Email View */
+        .email-view {
+            flex: 2;
+            background: white;
             display: none;
+            flex-direction: column;
+            border-left: 1px solid #e0e0e0;
+            min-width: 0;
         }
 
-        .upload-btn {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
+        .email-view.active {
+            display: flex;
         }
 
-        .upload-btn:hover {
-            background: #1669d3;
+        .email-view-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
         }
 
-        /* Email Detail View */
-        .email-detail {
-            display: none;
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-        }
-
-        .detail-header {
-            margin-bottom: 24px;
-        }
-
-        .detail-subject {
-            font-size: 22px;
-            font-weight: 500;
+        .email-view-actions {
             margin-bottom: 16px;
         }
 
-        .detail-meta {
-            display: flex;
-            gap: 24px;
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .detail-body {
-            white-space: pre-wrap;
-            line-height: 1.6;
-            font-size: 14px;
-        }
-
-        .back-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        #back-btn {
             background: none;
-            border: none;
-            padding: 8px 12px;
-            margin-bottom: 16px;
-            cursor: pointer;
-            color: var(--text-secondary);
+            border: 1px solid #dadce0;
             border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            color: #5f6368;
+            font-size: 14px;
         }
 
-        .back-btn:hover {
-            background: var(--hover-bg);
+        #back-btn:hover {
+            border-color: #1a73e8;
+            color: #1a73e8;
         }
 
-        /* Stats Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
+        .email-view-subject {
+            font-size: 22px;
+            margin-bottom: 16px;
+            color: #202124;
+            line-height: 1.3;
+        }
+
+        .email-view-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .email-view-meta strong {
+            color: #202124;
+        }
+
+        .email-view-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .email-body-content {
+            max-width: 720px;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
             align-items: center;
             justify-content: center;
+            padding: 40px;
+            color: #5f6368;
         }
 
-        .modal.show {
-            display: flex;
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
         }
 
-        .modal-content {
-            background: white;
-            border-radius: 8px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+            height: 16px;
+            margin-bottom: 8px;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .email-loading-content {
+            margin-top: 20px;
+        }
+
+        /* Virtual Scroll Container */
+        .virtual-scroll-container {
+            position: relative;
             overflow-y: auto;
-            padding: 24px;
+            flex: 1;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+        .virtual-scroll-content {
+            position: relative;
         }
 
-        .modal-title {
-            font-size: 20px;
-            font-weight: 500;
-        }
-
-        .close-modal {
-            background: none;
-            border: none;
-            padding: 4px;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-        }
-
-        .stat-value {
-            font-weight: 500;
-        }
-
-        /* Mobile overlay for when sidebar is open */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 98;
-        }
-        
-        .sidebar-overlay.show {
-            display: block;
-        }
-
+        /* Mobile Responsive */
         @media (max-width: 768px) {
             .sidebar {
+                display: none;
+            }
+            
+            .email-view {
                 position: fixed;
+                top: 0;
                 left: 0;
-                top: var(--header-height);
+                right: 0;
                 bottom: 0;
-                z-index: 99;
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-                margin-left: 0;
+                z-index: 100;
             }
             
-            .sidebar.collapsed {
-                transform: translateX(-100%);
-                margin-left: 0;
+            .email-list-container {
+                max-width: 100%;
             }
-            
-            .sidebar.open {
-                transform: translateX(0);
-            }
-            
+
             .email-sender {
-                min-width: 100px;
-            }
-            
-            .main-content {
-                width: 100%;
+                min-width: 120px;
             }
         }
 
-        @media (min-width: 769px) {
-            .sidebar {
-                position: relative;
-                transition: transform 0.3s ease, width 0.3s ease;
-                flex-shrink: 0;
-                width: var(--sidebar-width);
-                overflow: hidden;
-            }
-            
-            .sidebar.collapsed {
-                transform: translateX(-100%);
-                width: 0;
-                margin-left: 0;
-            }
-            
-            .main-content {
-                flex: 1;
-                min-width: 0;
-                transition: margin-left 0.3s ease;
-            }
+        /* Search Results */
+        .search-results-header {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+            color: #5f6368;
+        }
+
+        .no-results {
+            padding: 40px 20px;
+            text-align: center;
+            color: #5f6368;
+            font-size: 16px;
+        }
+
+        .error-message {
+            padding: 20px;
+            background: #fef7f0;
+            border: 1px solid #fdd;
+            border-radius: 4px;
+            color: #d93025;
+            margin: 20px;
         }
     </style>
 </head>
 <body>
     <!-- Loading Screen -->
-    <div id="loading-screen">
+    <div id="loading-screen" class="loading" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 1000;">
         <div class="loading-spinner"></div>
-        <div class="loading-text" id="loading-text">Loading Open Inbox...</div>
-        <div class="loading-error" id="loading-error" style="display: none;">
-            Failed to load SQL.js. This might be due to browser restrictions when loading from file://.
-            Try serving this file from a web server instead.
-        </div>
-        <button class="retry-btn" id="retry-btn" style="display: none;" onclick="location.reload()">
-            Retry
-        </button>
+        <span>Loading Open Inbox...</span>
     </div>
 
-    <div class="app-container" style="display: none;">
+    <!-- Main App -->
+    <div id="app" style="display: none;">
         <!-- Header -->
-        <header class="app-header">
-            <div class="header-left">
-                <button class="menu-btn" id="menu-toggle">
-                    <i class="material-icons">menu</i>
-                </button>
-                <div class="app-title" id="app-title">Open Inbox</div>
+        <div class="header">
+            <div class="logo">📧 Open Inbox</div>
+            <div class="search-container">
+                <input type="text" class="search-box" id="search-box" placeholder="Search emails...">
             </div>
-            
-            <div class="header-center">
-                <div class="search-container">
-                    <i class="material-icons">search</i>
-                    <input type="text" id="search-input" placeholder="Search emails...">
-                    <button type="button" id="clear-search" style="display: none; background: none; border: none; padding: 4px; color: var(--text-secondary); cursor: pointer;">
-                        <i class="material-icons">clear</i>
-                    </button>
-                </div>
+            <div class="header-actions">
+                <span id="collection-name">Loading...</span>
+                <button id="refresh-btn">↻</button>
             </div>
-            
-            <div class="header-right">
-                <button class="icon-btn" id="permalink-btn" title="Copy Permalink" style="display: none;">
-                    <i class="material-icons">link</i>
-                </button>
-                <button class="icon-btn" id="help-btn" title="About">
-                    <i class="material-icons">help_outline</i>
-                </button>
-                <button class="icon-btn" id="stats-btn" title="Statistics">
-                    <i class="material-icons">bar_chart</i>
-                </button>
-            </div>
-        </header>
+        </div>
 
-        <div class="app-body">
-            <!-- Sidebar Overlay -->
-            <div class="sidebar-overlay" id="sidebar-overlay"></div>
-            
+        <!-- Main Container -->
+        <div class="main-container">
             <!-- Sidebar -->
-            <nav class="sidebar" id="sidebar">
-                <div class="nav-section">
-                    <div class="nav-item active" data-view="inbox">
-                        <i class="material-icons">inbox</i>
-                        <span>All Emails</span>
-                        <span class="nav-count" id="inbox-count">0</span>
+            <div class="sidebar">
+                <div class="nav-item active" data-folder="inbox">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span>📥</span>
+                        <span>Inbox</span>
+                    </div>
+                    <span class="count" id="inbox-count">0</span>
+                </div>
+                <div class="nav-item" data-folder="all">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span>📁</span>
+                        <span>All Mail</span>
                     </div>
                 </div>
+                
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
                 
                 <div class="contacts-section">
-                    <div class="section-title">Top Contacts</div>
-                    <div id="contacts-list"></div>
-                </div>
-            </nav>
-
-            <!-- Main Content -->
-            <main class="main-content">
-                <!-- Upload Container -->
-                <div class="upload-container" id="upload-container">
-                    <div class="upload-area" id="upload-area">
-                        <i class="material-icons upload-icon">cloud_upload</i>
-                        <div class="upload-text">
-                            <div id="url-db-name" style="display: none; margin-bottom: 16px; font-weight: 500;">
-                                Looking for database: <span id="db-filename"></span>
-                            </div>
-                            Drag and drop your SQLite database file here<br>
-                            or click to browse
-                        </div>
-                        <input type="file" id="file-input" class="file-input" accept=".db,.sqlite,.sqlite3">
-                        <button class="upload-btn" onclick="document.getElementById('file-input').click()">
-                            Choose Database File
-                        </button>
+                    <h4 style="font-size: 12px; color: #5f6368; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.8px;">Top Contacts</h4>
+                    <div id="contacts-list">
+                        <div style="padding: 8px 0; font-size: 13px; color: #5f6368;">Loading contacts...</div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Email List View -->
-                <div id="list-view" style="display: none;">
-                    <div class="inbox-toolbar">
-                        <div class="toolbar-left">
-                            <input type="checkbox" id="select-all">
-                            <button class="icon-btn" id="refresh-btn">
-                                <i class="material-icons">refresh</i>
-                            </button>
+            <!-- Email List -->
+            <div class="email-list-container">
+                <div class="email-list-header">
+                    <div class="email-list-header-left">
+                        <input type="checkbox" id="select-all">
+                        <span id="email-count">Loading emails...</span>
+                    </div>
+                    <div>
+                        <select id="sort-by">
+                            <option value="date_desc">Newest First</option>
+                            <option value="date_asc">Oldest First</option>
+                            <option value="sender">By Sender</option>
+                            <option value="subject">By Subject</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="search-results-header" class="search-results-header" style="display: none;"></div>
+                
+                <div class="email-list" id="email-list">
+                    <div id="email-list-content"></div>
+                </div>
+            </div>
+
+            <!-- Email View -->
+            <div class="email-view" id="email-view">
+                <div class="email-view-header">
+                    <div class="email-view-actions">
+                        <button id="back-btn">← Back to List</button>
+                    </div>
+                    <h2 class="email-view-subject" id="email-subject">Loading...</h2>
+                    <div class="email-view-meta">
+                        <div>From: <strong id="email-from">Loading...</strong></div>
+                        <div>To: <strong id="email-to">Loading...</strong></div>
+                        <div>Date: <strong id="email-date">Loading...</strong></div>
+                    </div>
+                </div>
+                <div class="email-view-body">
+                    <div class="email-body-content">
+                        <!-- Preview shown immediately -->
+                        <div id="email-preview-content" style="color: #5f6368; font-style: italic; padding: 16px; background: #f8f9fa; border-left: 3px solid #dadce0; border-radius: 4px;">
+                            Loading preview...
                         </div>
                         
-                        <div class="toolbar-right">
-                            <div class="pagination-info" id="pagination-info">
-                                No emails
-                            </div>
-                            <div class="pagination-controls">
-                                <button class="page-btn" id="first-page" disabled>
-                                    <i class="material-icons">first_page</i>
-                                </button>
-                                <button class="page-btn" id="prev-page" disabled>
-                                    <i class="material-icons">chevron_left</i>
-                                </button>
-                                <button class="page-btn" id="next-page" disabled>
-                                    <i class="material-icons">chevron_right</i>
-                                </button>
-                                <button class="page-btn" id="last-page" disabled>
-                                    <i class="material-icons">last_page</i>
-                                </button>
-                            </div>
+                        <!-- Loading skeleton for full content -->
+                        <div id="email-loading" class="email-loading-content" style="display: none;">
+                            <div class="skeleton" style="width: 100%; height: 20px;"></div>
+                            <div class="skeleton" style="width: 90%; height: 20px;"></div>
+                            <div class="skeleton" style="width: 95%; height: 20px;"></div>
+                            <div class="skeleton" style="width: 85%; height: 20px;"></div>
                         </div>
+                        
+                        <!-- Full content -->
+                        <div id="email-full-content" style="display: none;"></div>
                     </div>
-                    
-                    <div class="email-list" id="email-list">
-                        <div style="padding: 48px; text-align: center; color: var(--text-secondary);">
-                            No database loaded. Click the upload button to load your email database.
-                        </div>
+                    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                        <a id="document-link" href="#" target="_blank" style="color: #1a73e8; text-decoration: none; font-size: 14px;">View original document in DocumentCloud →</a>
                     </div>
                 </div>
-
-                <!-- Email Detail View -->
-                <div class="email-detail" id="email-detail">
-                    <button class="back-btn" id="back-btn">
-                        <i class="material-icons">arrow_back</i>
-                        Back to list
-                    </button>
-                    <div class="detail-header">
-                        <h1 class="detail-subject" id="detail-subject"></h1>
-                        <div class="detail-meta">
-                            <span>From: <span id="detail-from"></span></span>
-                            <span>To: <span id="detail-to"></span></span>
-                            <span id="detail-date"></span>
-                        </div>
-                    </div>
-                    <div class="detail-body" id="detail-body"></div>
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- Stats Modal -->
-    <div class="modal" id="stats-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Database Statistics</h2>
-                <button class="close-modal" onclick="closeStatsModal()">
-                    <i class="material-icons">close</i>
-                </button>
-            </div>
-            <div id="stats-content"></div>
-        </div>
-    </div>
-    
-    <!-- Help Modal -->
-    <div class="modal" id="help-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">About Open Inbox</h2>
-                <button class="close-modal" onclick="closeHelpModal()">
-                    <i class="material-icons">close</i>
-                </button>
-            </div>
-            <div style="padding: 20px;">
-                <p>Powered by <a href="https://www.documentcloud.org/" target="_blank" style="color: var(--primary-color);">DocumentCloud</a> 
-                <a href="https://www.documentcloud.org/add-ons/morisy/open-inbox/" target="_blank" style="color: var(--primary-color);">Open Inbox Add-On</a></p>
-                <p style="margin-top: 16px;">Open Inbox converts DocumentCloud documents into browsable email-like interfaces for easy exploration of document collections.</p>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <script src="js/chunk-loader.js"></script>
     <script>
-        // Global variables
-        let SQL;
+        // Global state
+        let SQL = null;
         let db = null;
-        let currentView = 'inbox';
-        let currentPage = 1;
-        let itemsPerPage = 25;
+        let chunkLoader = null;
+        let emails = [];
+        let currentEmail = null;
         let searchQuery = '';
-        let currentEmails = [];
-        let readEmails = new Set();
+        let sortBy = 'date_desc';
+        let isChunkedMode = false;
 
-        // Initialize SQL.js
-        async function initSqlJs() {
+        // Initialize application
+        async function initApp() {
             try {
-                console.log('Starting SQL.js initialization...');
+                console.log('Initializing Open Inbox...');
                 
-                // Detect mobile
-                const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-                if (isMobile) {
-                    console.log('Mobile device detected');
-                    document.getElementById('loading-text').textContent = 'Initializing database engine...';
-                }
-                
-                // Try to load SQL.js from CDN
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js';
-                
-                const loadPromise = new Promise((resolve, reject) => {
-                    script.onload = resolve;
-                    script.onerror = () => reject(new Error('Failed to load SQL.js script'));
-                });
-                
-                document.head.appendChild(script);
-                await loadPromise;
-                console.log('SQL.js script loaded');
-                
-                // Initialize SQL.js
-                SQL = await window.initSqlJs({
-                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
-                });
-                
-                console.log('SQL.js initialized successfully');
-                
-                // Check for URL parameter for database
+                // Get collection from URL
                 const urlParams = new URLSearchParams(window.location.search);
-                const dbParam = urlParams.get('emails') || urlParams.get('db');
+                const collectionParam = urlParams.get('collection') || urlParams.get('emails');
                 
-                if (dbParam) {
-                    await loadDatabaseFromUrl(dbParam);
-                } else {
-                    // Check for upload parameter (from collections page)
-                    const uploadParam = urlParams.get('upload');
-                    if (uploadParam) {
-                        // Show upload screen directly
-                        document.getElementById('loading-screen').style.display = 'none';
-                        document.querySelector('.app-container').style.display = 'flex';
-                        initializeUI();
-                        return;
-                    }
-                    
-                    // No specific collection requested, redirect to collections page
-                    // Clear any cached database to ensure clean redirect
-                    localStorage.removeItem('emailDb');
-                    redirectToCollections();
-                    return;
+                if (!collectionParam) {
+                    throw new Error('No collection specified in URL. Add ?collection=local_test');
                 }
                 
-                // Hide loading screen and show app
-                document.getElementById('loading-screen').style.display = 'none';
-                document.querySelector('.app-container').style.display = 'flex';
+                console.log('Collection parameter:', collectionParam);
+                
+                // Detect if this is chunked mode or legacy mode
+                const manifestUrl = `databases/${collectionParam}/manifest.json`;
+                
+                try {
+                    // Try to load manifest (chunked mode)
+                    const response = await fetch(manifestUrl);
+                    if (response.ok) {
+                        console.log('Chunked mode detected');
+                        isChunkedMode = true;
+                        await initChunkedMode(collectionParam);
+                    } else {
+                        // Fall back to legacy mode
+                        console.log('Legacy mode detected');
+                        await initLegacyMode(collectionParam);
+                    }
+                } catch (error) {
+                    // Fall back to legacy mode
+                    console.log('Falling back to legacy mode');
+                    await initLegacyMode(collectionParam);
+                }
                 
                 // Initialize UI
-                try {
-                    initializeUI();
-                } catch (uiError) {
-                    console.error('Error initializing UI:', uiError);
-                    // Continue anyway - database is loaded
-                }
+                initializeUI();
+                
+                // Load email list
+                await loadEmailList();
+                
+                // Load top contacts
+                await loadTopContacts();
+                
+                // Hide loading screen
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('app').style.display = 'flex';
+                
+                console.log('App initialization complete');
                 
             } catch (error) {
-                console.error('Failed to load SQL.js:', error);
-                document.getElementById('loading-text').style.display = 'none';
-                document.getElementById('loading-error').style.display = 'block';
-                document.getElementById('retry-btn').style.display = 'inline-block';
+                console.error('Failed to initialize app:', error);
+                showError('Failed to load email collection: ' + error.message);
             }
         }
 
-        function redirectToCollections() {
-            // Redirect to collections page if no specific collection requested
-            window.location.href = 'collections.html';
+        // Initialize chunked mode
+        async function initChunkedMode(collectionId) {
+            console.log('Initializing chunked mode for collection:', collectionId);
+            
+            // Initialize SQL.js for metadata
+            SQL = await initSqlJs({
+                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+            });
+            
+            // Load metadata database
+            const metadataUrl = `databases/${collectionId}/metadata.db`;
+            const response = await fetch(metadataUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to load metadata database: ${response.status} ${response.statusText}`);
+            }
+            
+            const buffer = await response.arrayBuffer();
+            const data = new Uint8Array(buffer);
+            db = new SQL.Database(data);
+            
+            console.log('Metadata database loaded');
+            
+            // Initialize chunk loader
+            const manifestUrl = `databases/${collectionId}/manifest.json`;
+            chunkLoader = new window.EnhancedChunkLoader(collectionId, manifestUrl);
+            await chunkLoader.initialize();
+            
+            console.log('Chunk loader initialized');
+            
+            // Update collection name
+            const collectionInfo = db.exec('SELECT display_name FROM collection_info LIMIT 1');
+            if (collectionInfo.length > 0) {
+                document.getElementById('collection-name').textContent = collectionInfo[0].values[0][0];
+            }
         }
 
-        async function loadDatabaseFromUrl(collectionParam) {
+        // Initialize legacy mode (backward compatibility)
+        async function initLegacyMode(collectionId) {
+            console.log('Initializing legacy mode for collection:', collectionId);
+            
+            // Initialize SQL.js
+            SQL = await initSqlJs({
+                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+            });
+            
+            // Load full database
+            const dbUrl = `collections/${collectionId}.db`;
+            const response = await fetch(dbUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to load database: ${response.status} ${response.statusText}`);
+            }
+            
+            const buffer = await response.arrayBuffer();
+            const data = new Uint8Array(buffer);
+            db = new SQL.Database(data);
+            
+            console.log('Legacy database loaded');
+            
+            // Update collection name
+            const collectionInfo = db.exec('SELECT display_name FROM collection_info LIMIT 1');
+            if (collectionInfo.length > 0) {
+                document.getElementById('collection-name').textContent = collectionInfo[0].values[0][0];
+            }
+        }
+
+        // Load email list
+        async function loadEmailList() {
             try {
-                console.log('Loading database for:', collectionParam);
+                console.log('Loading email list...');
+                console.log('Current search query:', searchQuery);
+                console.log('Is chunked mode:', isChunkedMode);
+                let query = 'SELECT ';
                 
-                // Convert collection parameter to file path
-                let filename;
-                if (collectionParam.includes('.db')) {
-                    // Full filename provided
-                    filename = collectionParam.startsWith('collections/') ? collectionParam : `collections/${collectionParam}`;
+                if (isChunkedMode) {
+                    // Chunked mode - select from metadata
+                    query += 'email_id, document_id, sender_email, sender_name, recipient_email, recipient_name, subject, preview, date_sent, chunk_id';
                 } else {
-                    // Collection ID/name provided, add .db extension
-                    filename = `collections/${collectionParam}.db`;
+                    // Legacy mode - select everything
+                    query += 'document_id, sender_email, sender_name, recipient_email, recipient_name, subject, preview, date_sent, body, metadata';
                 }
                 
-                // Use absolute path to ensure it works on all domains
-                const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
-                const fullPath = basePath + filename;
-                console.log('Fetching from:', fullPath);
+                query += ' FROM emails';
                 
-                document.getElementById('loading-text').textContent = `Loading collection...`;
-                document.getElementById('db-filename').textContent = collectionParam;
-                document.getElementById('url-db-name').style.display = 'block';
-                
-                // Try to fetch the database file
-                const response = await fetch(fullPath);
-                console.log('Fetch response:', response.status, response.statusText);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                // Add search filter
+                if (searchQuery) {
+                    // Use LIKE search for now (FTS5 not available in SQL.js)
+                    query += ` WHERE subject LIKE '%${searchQuery}%' OR sender_name LIKE '%${searchQuery}%' OR sender_email LIKE '%${searchQuery}%' OR preview LIKE '%${searchQuery}%'`;
                 }
                 
-                // Check content length for mobile memory concerns
-                const contentLength = response.headers.get('content-length');
-                console.log('Database size:', contentLength, 'bytes');
-                
-                // For mobile, show progress
-                if (/Mobi|Android/i.test(navigator.userAgent) && contentLength && parseInt(contentLength) > 1024 * 1024) {
-                    document.getElementById('loading-text').textContent = `Loading collection (${Math.round(contentLength / 1024)} KB)...`;
+                // Add sorting
+                switch (sortBy) {
+                    case 'date_asc':
+                        query += ' ORDER BY date_sent ASC';
+                        break;
+                    case 'sender':
+                        query += ' ORDER BY sender_name ASC';
+                        break;
+                    case 'subject':
+                        query += ' ORDER BY subject ASC';
+                        break;
+                    default:
+                        query += ' ORDER BY date_sent DESC';
                 }
                 
-                const data = new Uint8Array(await response.arrayBuffer());
-                console.log('Data loaded, size:', data.length);
+                console.log('Executing query:', query);
+                console.log('Search query:', searchQuery);
                 
-                // Create database
-                db = new SQL.Database(data);
-                console.log('Database created successfully');
-                
-                // Check for collection metadata and update title
+                // Execute query (LIKE search has searchQuery embedded in string)
+                let result;
                 try {
-                    const collectionInfo = db.exec("SELECT display_name FROM collection_info LIMIT 1");
-                    if (collectionInfo[0] && collectionInfo[0].values[0]) {
-                        const displayName = collectionInfo[0].values[0][0];
-                        document.title = `${displayName} - Open Inbox`;
-                        document.getElementById('app-title').textContent = displayName;
-                        if (document.getElementById('db-filename')) {
-                            document.getElementById('db-filename').textContent = displayName;
-                        }
-                    }
-                } catch (e) {
-                    // No collection metadata, use original title
+                    result = db.exec(query);
+                    console.log('Query executed successfully, result length:', result.length);
+                } catch (queryError) {
+                    console.error('Query execution failed:', queryError);
+                    console.error('Failed query:', query);
+                    throw queryError;
                 }
                 
-                // Save to localStorage if not too large
-                // Skip on mobile to avoid call stack issues
-                const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-                if (!isMobile && data.length < 50 * 1024 * 1024) {
-                    try {
-                        // Use chunked approach to avoid call stack issues
-                        let binary = '';
-                        const chunkSize = 8192; // Process in 8KB chunks
-                        for (let i = 0; i < data.length; i += chunkSize) {
-                            const chunk = data.slice(i, i + chunkSize);
-                            binary += String.fromCharCode.apply(null, chunk);
-                        }
-                        const base64 = btoa(binary);
-                        localStorage.setItem('emailDb', base64);
-                        console.log('Database cached to localStorage');
-                    } catch (e) {
-                        console.log('Could not cache database to localStorage:', e.message);
-                        // Continue without caching - not critical
-                    }
+                if (result.length > 0) {
+                    emails = result[0].values.map(row => {
+                        const email = {};
+                        result[0].columns.forEach((col, idx) => {
+                            email[col] = row[idx];
+                        });
+                        return email;
+                    });
+                } else {
+                    emails = [];
                 }
                 
-                console.log('Calling onDatabaseLoaded...');
-                onDatabaseLoaded();
-                console.log('Database loading complete');
+                console.log(`Loaded ${emails.length} emails`);
+                
+                // Update UI
+                updateEmailCount();
+                updateSearchResultsHeader();
+                
+                // Render email list
+                renderEmailList();
                 
             } catch (error) {
-                console.error('Failed to load database from URL:', error);
-                
-                // More detailed error message for debugging
-                let errorMessage = `Failed to load collection "${collectionParam}".`;
-                if (error.message.includes('HTTP')) {
-                    errorMessage += ` Database file not found.`;
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMessage += ` Network error - please check your connection.`;
-                } else {
-                    errorMessage += ` Error: ${error.message}`;
-                }
-                
-                document.getElementById('loading-text').innerHTML = errorMessage + 
-                    '<br><br><a href="collections.html" style="color: var(--primary-color);">← Back to Collections</a>';
-                
-                // On mobile, show a simpler error
-                if (/Mobi|Android/i.test(navigator.userAgent)) {
-                    console.log('Mobile device detected, showing simplified error');
-                    document.getElementById('loading-text').innerHTML = 
-                        errorMessage + '<br><br><a href="collections.html" style="color: var(--primary-color);">← Try Another Collection</a>';
-                }
-                
-                // Don't auto-redirect on error, let user see the error
+                console.error('Failed to load emails:', error);
+                showError('Failed to load emails: ' + error.message);
             }
         }
 
-        function initializeUI() {
-            // Load saved state
-            const savedRead = localStorage.getItem('readEmails');
-            if (savedRead) readEmails = new Set(JSON.parse(savedRead));
+        function updateEmailCount() {
+            const count = emails.length;
+            const countText = searchQuery ? 
+                `${count} results${searchQuery ? ` for "${searchQuery}"` : ''}` : 
+                `${count} emails`;
             
-            // File upload
-            const fileInput = document.getElementById('file-input');
-            const uploadArea = document.getElementById('upload-area');
+            document.getElementById('email-count').textContent = countText;
+            document.getElementById('inbox-count').textContent = count.toString();
+        }
+
+        function updateSearchResultsHeader() {
+            const header = document.getElementById('search-results-header');
+            if (searchQuery) {
+                header.style.display = 'block';
+                header.textContent = `Search results for "${searchQuery}" (${emails.length} found)`;
+            } else {
+                header.style.display = 'none';
+            }
+        }
+
+        // Render email list
+        function renderEmailList() {
+            const container = document.getElementById('email-list-content');
+            container.innerHTML = '';
             
-            fileInput.addEventListener('change', handleFileSelect);
-            
-            // Drag and drop
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-            
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-            
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                const file = e.dataTransfer.files[0];
-                if (file) loadDatabase(file);
-            });
-            
-            // Upload button
-            // Upload button was removed, skip this code
-            
-            // Menu toggle
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            const menuToggle = document.getElementById('menu-toggle');
-            
-            if (menuToggle && sidebar) {
-                menuToggle.addEventListener('click', () => {
-                    console.log('Menu toggle clicked');
-                    const isMobile = window.innerWidth <= 768;
-                    
-                    if (isMobile) {
-                        // Mobile: toggle open class and overlay
-                        sidebar.classList.toggle('open');
-                        if (overlay) overlay.classList.toggle('show');
-                    } else {
-                        // Desktop: toggle collapsed class
-                        sidebar.classList.toggle('collapsed');
-                    }
-                });
+            if (emails.length === 0) {
+                container.innerHTML = '<div class="no-results">No emails found</div>';
+                return;
             }
             
-            // Close sidebar when clicking overlay on mobile
-            if (overlay) {
-                overlay.addEventListener('click', () => {
-                    if (sidebar) sidebar.classList.remove('open');
-                    overlay.classList.remove('show');
-                });
-            }
+            // For performance, render all emails (virtual scrolling can be added later for very large lists)
+            emails.forEach((email, index) => {
+                const item = createEmailListItem(email, index);
+                container.appendChild(item);
+            });
+        }
+
+        // Create email list item
+        function createEmailListItem(email, index) {
+            const div = document.createElement('div');
+            div.className = 'email-item unread'; // Make all emails appear unread for demo
+            div.dataset.index = index;
+            div.dataset.documentId = email.document_id;
             
-            // Handle window resize
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 768) {
-                    // Desktop: remove mobile classes
-                    sidebar.classList.remove('open');
-                    overlay.classList.remove('show');
+            // Format date
+            const date = email.date_sent ? new Date(email.date_sent) : null;
+            const dateStr = date ? formatDate(date) : '';
+            
+            // Get sender display name
+            const senderDisplay = email.sender_name || email.sender_email || 'Unknown';
+            
+            div.innerHTML = `
+                <div class="email-checkbox"></div>
+                <div class="email-sender">${escapeHtml(senderDisplay)}</div>
+                <div class="email-content">
+                    <div class="email-subject">${escapeHtml(email.subject || 'No Subject')}</div>
+                    <div class="email-preview">${escapeHtml(email.preview || '')}</div>
+                </div>
+                <div class="email-date">${dateStr}</div>
+            `;
+            
+            div.addEventListener('click', () => viewEmail(email));
+            
+            return div;
+        }
+
+        // Load top contacts
+        async function loadTopContacts() {
+            try {
+                // Get top senders by email count
+                let query;
+                if (isChunkedMode) {
+                    query = `
+                        SELECT sender_name, sender_email, COUNT(*) as count
+                        FROM emails 
+                        WHERE sender_name IS NOT NULL 
+                        GROUP BY sender_email 
+                        ORDER BY count DESC 
+                        LIMIT 8
+                    `;
                 } else {
-                    // Mobile: remove desktop classes
-                    sidebar.classList.remove('collapsed');
+                    query = `
+                        SELECT sender_name, sender_email, COUNT(*) as count
+                        FROM emails 
+                        WHERE sender_name IS NOT NULL 
+                        GROUP BY sender_email 
+                        ORDER BY count DESC 
+                        LIMIT 8
+                    `;
                 }
-            });
+                
+                const result = db.exec(query);
+                const contactsContainer = document.getElementById('contacts-list');
+                
+                if (result.length > 0 && result[0].values.length > 0) {
+                    contactsContainer.innerHTML = result[0].values.map(row => {
+                        const name = row[0] || row[1];
+                        const count = row[2];
+                        return `
+                            <div style="padding: 4px 0; font-size: 13px; color: #5f6368; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" 
+                                 onclick="filterBySender('${escapeHtml(row[1])}')">
+                                <span style="overflow: hidden; text-overflow: ellipsis;">${escapeHtml(name)}</span>
+                                <span style="font-size: 11px; background: #f1f3f4; padding: 1px 6px; border-radius: 8px;">${count}</span>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    contactsContainer.innerHTML = '<div style="padding: 8px 0; font-size: 13px; color: #5f6368;">No contacts found</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load contacts:', error);
+            }
+        }
+
+        function filterBySender(senderEmail) {
+            document.getElementById('search-box').value = senderEmail;
+            searchQuery = senderEmail;
+            loadEmailList();
+        }
+
+        // View email with progressive loading
+        async function viewEmail(email) {
+            console.log('Viewing email:', email.document_id);
+            currentEmail = email;
             
+            // Show email view
+            document.querySelector('.email-list-container').style.display = 'none';
+            document.getElementById('email-view').classList.add('active');
+            
+            // Display metadata immediately
+            document.getElementById('email-subject').textContent = email.subject || 'No Subject';
+            document.getElementById('email-from').textContent = `${email.sender_name || email.sender_email || 'Unknown'}`;
+            document.getElementById('email-to').textContent = `${email.recipient_name || email.recipient_email || 'Unknown'}`;
+            
+            const date = email.date_sent ? new Date(email.date_sent) : null;
+            document.getElementById('email-date').textContent = date ? date.toLocaleString() : '';
+            
+            // Show preview immediately
+            document.getElementById('email-preview-content').textContent = email.preview || 'Loading email content...';
+            document.getElementById('email-preview-content').style.display = 'block';
+            document.getElementById('email-loading').style.display = 'none';
+            document.getElementById('email-full-content').style.display = 'none';
+            
+            // Load full content
+            if (isChunkedMode) {
+                // Show loading skeleton immediately if we have a meaningful preview
+                if (email.preview && email.preview.length > 50) {
+                    // Keep preview visible, no skeleton flash
+                } else {
+                    // Only show skeleton if preview is short/empty
+                    setTimeout(() => {
+                        document.getElementById('email-preview-content').style.display = 'none';
+                        document.getElementById('email-loading').style.display = 'block';
+                    }, 100);
+                }
+                
+                try {
+                    // Load content from chunk
+                    const content = await chunkLoader.getEmailContent(email.document_id, email.chunk_id);
+                    
+                    if (content) {
+                        // Display full content - smooth transition
+                        document.getElementById('email-loading').style.display = 'none';
+                        document.getElementById('email-preview-content').style.display = 'none';
+                        document.getElementById('email-full-content').innerHTML = formatEmailBody(content.body);
+                        document.getElementById('email-full-content').style.display = 'block';
+                        
+                        // Update document link
+                        document.getElementById('document-link').href = content.document_url;
+                        
+                        // Prefetch adjacent chunks
+                        if (email.chunk_id !== undefined) {
+                            chunkLoader.prefetchAdjacentChunks(email.chunk_id);
+                        }
+                    } else {
+                        throw new Error('Email content not found');
+                    }
+                    
+                } catch (error) {
+                    console.error('Failed to load email content:', error);
+                    document.getElementById('email-loading').style.display = 'none';
+                    document.getElementById('email-preview-content').style.display = 'block';
+                    document.getElementById('email-preview-content').innerHTML = 
+                        '<div class="error-message">Failed to load full email content. Please try again.</div>' +
+                        '<div style="margin-top: 16px; color: #5f6368; font-style: italic;">' + escapeHtml(email.preview || 'No preview available') + '</div>';
+                }
+                
+            } else {
+                // Legacy mode - content is already in database
+                document.getElementById('email-preview-content').style.display = 'none';
+                document.getElementById('email-full-content').innerHTML = formatEmailBody(email.body);
+                document.getElementById('email-full-content').style.display = 'block';
+                
+                // Update document link
+                if (email.metadata) {
+                    try {
+                        const metadata = JSON.parse(email.metadata);
+                        document.getElementById('document-link').href = metadata.document_url;
+                    } catch (e) {
+                        console.warn('Failed to parse metadata:', e);
+                    }
+                }
+            }
+        }
+
+        // Initialize UI event handlers
+        function initializeUI() {
             // Search
-            let searchTimeout;
-            const searchInput = document.getElementById('search-input');
-            const clearSearchBtn = document.getElementById('clear-search');
-            
-            if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                const value = e.target.value;
-                
-                // Show/hide clear button
-                clearSearchBtn.style.display = value ? 'block' : 'none';
-                
-                searchTimeout = setTimeout(() => {
-                    searchQuery = value;
-                    currentPage = 1;
-                    
-                    // If we're in email detail view, go back to list view to show results
-                    if (document.getElementById('email-detail').style.display === 'block') {
-                        document.getElementById('email-detail').style.display = 'none';
-                        document.getElementById('list-view').style.display = 'block';
-                        document.getElementById('permalink-btn').style.display = 'none';
-                        window.history.pushState('', document.title, window.location.pathname + window.location.search);
-                    }
-                    
-                    loadEmails();
-                }, 300);
-                });
-                
-                // Handle Enter key for immediate search
-                searchInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    clearTimeout(searchTimeout);
-                    searchQuery = e.target.value;
-                    currentPage = 1;
-                    
-                    // Show/hide clear button
-                    clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
-                    
-                    // If we're in email detail view, go back to list view to show results
-                    if (document.getElementById('email-detail').style.display === 'block') {
-                        document.getElementById('email-detail').style.display = 'none';
-                        document.getElementById('list-view').style.display = 'block';
-                        document.getElementById('permalink-btn').style.display = 'none';
-                        window.history.pushState('', document.title, window.location.pathname + window.location.search);
-                    }
-                    
-                    loadEmails();
-                }
-                });
-            }
-            
-            // Clear search
-            if (clearSearchBtn) {
-                clearSearchBtn.addEventListener('click', () => {
-                searchInput.value = '';
-                searchQuery = '';
-                currentPage = 1;
-                clearSearchBtn.style.display = 'none';
-                searchInput.focus();
-                
-                // If we're in email detail view, go back to list view
-                if (document.getElementById('email-detail').style.display === 'block') {
-                    document.getElementById('email-detail').style.display = 'none';
-                    document.getElementById('list-view').style.display = 'block';
-                    document.getElementById('permalink-btn').style.display = 'none';
-                    window.history.pushState('', document.title, window.location.pathname + window.location.search);
-                }
-                
-                loadEmails();
-                });
-            }
-            
-            // Navigation
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                    item.classList.add('active');
-                    currentView = item.dataset.view;
-                    currentPage = 1;
-                    loadEmails();
-                });
+            document.getElementById('search-box').addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                debounce(loadEmailList, 300)();
             });
             
-            // Pagination
-            document.getElementById('first-page').addEventListener('click', () => {
-                currentPage = 1;
-                loadEmails();
-            });
-            
-            document.getElementById('prev-page').addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    loadEmails();
-                }
-            });
-            
-            document.getElementById('next-page').addEventListener('click', () => {
-                currentPage++;
-                loadEmails();
-            });
-            
-            document.getElementById('last-page').addEventListener('click', () => {
-                const total = getTotalEmails();
-                currentPage = Math.ceil(total / itemsPerPage);
-                loadEmails();
-            });
-            
-            // Refresh
-            document.getElementById('refresh-btn').addEventListener('click', () => {
-                loadEmails();
+            // Sort
+            document.getElementById('sort-by').addEventListener('change', (e) => {
+                sortBy = e.target.value;
+                loadEmailList();
             });
             
             // Back button
             document.getElementById('back-btn').addEventListener('click', () => {
-                document.getElementById('email-detail').style.display = 'none';
-                document.getElementById('list-view').style.display = 'block';
-                // Hide permalink button
-                document.getElementById('permalink-btn').style.display = 'none';
-                // Clear the hash to update the URL
-                window.history.pushState('', document.title, window.location.pathname + window.location.search);
+                document.getElementById('email-view').classList.remove('active');
+                document.querySelector('.email-list-container').style.display = 'flex';
             });
             
-            // Stats
-            const statsBtn = document.getElementById('stats-btn');
-            if (statsBtn) {
-                statsBtn.addEventListener('click', showStats);
-            }
+            // Refresh button
+            document.getElementById('refresh-btn').addEventListener('click', () => {
+                if (chunkLoader) {
+                    chunkLoader.clearMemoryCache();
+                }
+                loadEmailList();
+                loadTopContacts();
+            });
             
-            // Help
-            const helpBtn = document.getElementById('help-btn');
-            if (helpBtn) {
-                helpBtn.addEventListener('click', showHelp);
-            }
-            
-            // Permalink
-            const permalinkBtn = document.getElementById('permalink-btn');
-            if (permalinkBtn) {
-                permalinkBtn.addEventListener('click', () => {
-                    const emailId = permalinkBtn.getAttribute('data-email-id');
-                    if (emailId) {
-                        copyPermalink(emailId);
-                    }
-                });
-            }
-            
-            // Click outside modal to close
-            const statsModal = document.getElementById('stats-modal');
-            if (statsModal) {
-                statsModal.addEventListener('click', (e) => {
-                    if (e.target.id === 'stats-modal') {
-                        closeStatsModal();
-                    }
-                });
-            }
-            
-            const helpModal = document.getElementById('help-modal');
-            if (helpModal) {
-                helpModal.addEventListener('click', (e) => {
-                    if (e.target.id === 'help-modal') {
-                        closeHelpModal();
-                    }
-                });
-            }
-        }
-
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) loadDatabase(file);
-        }
-
-        async function loadDatabase(file) {
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    db = new SQL.Database(data);
+            // Sidebar navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    // Update active state
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
                     
-                    // Save to localStorage (if not too large)
-                    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-                    if (!isMobile && data.length < 50 * 1024 * 1024) { // 50MB limit
-                        try {
-                            // Use chunked approach to avoid call stack issues
-                            let binary = '';
-                            const chunkSize = 8192; // Process in 8KB chunks
-                            for (let i = 0; i < data.length; i += chunkSize) {
-                                const chunk = data.slice(i, i + chunkSize);
-                                binary += String.fromCharCode.apply(null, chunk);
-                            }
-                            const base64 = btoa(binary);
-                            localStorage.setItem('emailDb', base64);
-                        } catch (e) {
-                            console.log('Could not cache database:', e.message);
-                        }
-                    }
-                    
-                    onDatabaseLoaded();
-                } catch (error) {
-                    alert('Error loading database: ' + error.message);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function onDatabaseLoaded() {
-            document.getElementById('upload-container').style.display = 'none';
-            document.getElementById('list-view').style.display = 'block';
-            
-            // Load initial data
-            loadEmails();
-            loadContacts();
-            updateCounts();
-            
-            // Check for permalink on page load
-            checkPermalinkOnLoad();
-        }
-
-        function loadEmails() {
-            if (!db) return;
-            
-            let query = "SELECT * FROM emails WHERE 1=1";
-            let countQuery = "SELECT COUNT(*) as count FROM emails WHERE 1=1";
-            let params = [];
-            let countParams = [];
-            
-            // Apply filters - Note: Sent/Starred folders removed as not implemented
-            
-            // Apply search
-            if (searchQuery && searchQuery.trim()) {
-                const searchTerm = `%${searchQuery.trim()}%`;
-                query += ` AND (subject LIKE ? OR body LIKE ? 
-                          OR sender_email LIKE ? OR sender_name LIKE ?
-                          OR recipient_email LIKE ? OR recipient_name LIKE ?)`;
-                countQuery += ` AND (subject LIKE ? OR body LIKE ? 
-                              OR sender_email LIKE ? OR sender_name LIKE ?
-                              OR recipient_email LIKE ? OR recipient_name LIKE ?)`;
-                
-                // Add search parameters (6 times for each field)
-                for (let i = 0; i < 6; i++) {
-                    params.push(searchTerm);
-                    countParams.push(searchTerm);
-                }
-            }
-            
-            try {
-                // Get total count
-                const countStmt = db.prepare(countQuery);
-                const countResult = countStmt.getAsObject(countParams);
-                const totalCount = countResult.count || 0;
-                countStmt.free();
-                
-                // Add pagination
-                const offset = (currentPage - 1) * itemsPerPage;
-                query += ` ORDER BY date_sent DESC LIMIT ? OFFSET ?`;
-                params.push(itemsPerPage, offset);
-                
-                // Execute query
-                const stmt = db.prepare(query);
-                const emails = [];
-                
-                stmt.bind(params);
-                while (stmt.step()) {
-                    const row = stmt.getAsObject();
-                    emails.push(row);
-                }
-                stmt.free();
-                
-                currentEmails = emails;
-                renderEmails(emails);
-                updatePagination(totalCount);
-                
-            } catch (error) {
-                console.error('Database query error:', error);
-                console.log('Query:', query);
-                console.log('Params:', params);
-                document.getElementById('email-list').innerHTML = 
-                    '<div style="padding: 48px; text-align: center; color: #d93025;">Database error: ' + error.message + '</div>';
-            }
-        }
-
-        function renderEmails(emails) {
-            const container = document.getElementById('email-list');
-            
-            if (emails.length === 0) {
-                container.innerHTML = '<div style="padding: 48px; text-align: center; color: var(--text-secondary);">No emails found</div>';
-                return;
-            }
-            
-            container.innerHTML = emails.map(email => {
-                const isRead = readEmails.has(email.document_id);
-                
-                return `
-                    <div class="email-row ${isRead ? '' : 'unread'}" data-id="${email.document_id}">
-                        <div class="email-checkbox">
-                            <input type="checkbox">
-                        </div>
-                        <div class="email-sender">
-                            <span class="sender-name">${escapeHtml(email.sender_name || email.sender_email || 'Unknown')}</span>
-                        </div>
-                        <div class="email-content">
-                            <span class="email-subject">${escapeHtml(email.subject || '(no subject)')}</span>
-                            <span class="email-preview"> - ${escapeHtml(email.preview || '')}</span>
-                        </div>
-                        <div class="email-date">${formatDate(email.date_sent)}</div>
-                        ${email.has_attachments ? '<div class="email-attachment"><i class="material-icons">attach_file</i></div>' : ''}
-                    </div>
-                `;
-            }).join('');
-            
-            // Add click handlers
-            container.querySelectorAll('.email-row').forEach((row, idx) => {
-                row.addEventListener('click', (e) => {
-                    if (!e.target.matches('input') && !e.target.closest('.star-btn')) {
-                        showEmail(emails[idx]);
-                    }
+                    // For now, all folders show the same content
+                    // In future, could filter by folder
                 });
             });
         }
 
-        function showEmail(email, updateHash = true) {
-            document.getElementById('list-view').style.display = 'none';
-            document.getElementById('email-detail').style.display = 'block';
-            
-            document.getElementById('detail-subject').textContent = email.subject || '(no subject)';
-            document.getElementById('detail-from').textContent = email.sender_name || email.sender_email || 'Unknown';
-            document.getElementById('detail-to').textContent = email.recipient_name || email.recipient_email || 'Unknown';
-            document.getElementById('detail-date').textContent = formatDate(email.date_sent);
-            document.getElementById('detail-body').textContent = email.body || '(no content)';
-            
-            // Update URL hash for permalink (unless we're loading from hash)
-            if (updateHash) {
-                window.location.hash = `#email/${email.document_id}`;
-            }
-            
-            // Add link to original document if available
-            let metadata = {};
-            try {
-                if (email.metadata) {
-                    metadata = typeof email.metadata === 'string' ? JSON.parse(email.metadata) : email.metadata;
-                }
-            } catch (e) {
-                console.error('Error parsing metadata:', e);
-            }
-            
-            if (metadata.document_url) {
-                const linkHtml = `<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                    <a href="${metadata.document_url}" target="_blank" style="color: var(--primary-color); text-decoration: none; display: inline-flex; align-items: center;">
-                        <i class="material-icons" style="margin-right: 8px;">description</i>
-                        View Original Document on DocumentCloud
-                    </a>
-                </div>`;
-                document.getElementById('detail-body').innerHTML = escapeHtml(email.body || '(no content)') + linkHtml;
-                
-                // Show permalink button in header and store current email ID
-                const permalinkBtn = document.getElementById('permalink-btn');
-                if (permalinkBtn) {
-                    permalinkBtn.style.display = 'block';
-                    permalinkBtn.setAttribute('data-email-id', email.document_id);
-                }
-            }
-            
-            // Mark as read
-            if (!readEmails.has(email.document_id)) {
-                readEmails.add(email.document_id);
-                localStorage.setItem('readEmails', JSON.stringify(Array.from(readEmails)));
-            }
-        }
-
-
-        function loadContacts() {
-            if (!db) return;
-            
-            const query = `
-                SELECT sender_email as email, sender_name as name, COUNT(*) as count
-                FROM emails
-                WHERE sender_email IS NOT NULL
-                GROUP BY sender_email
-                ORDER BY count DESC
-                LIMIT 20
-            `;
-            
-            try {
-                const results = db.exec(query);
-                
-                if (results.length > 0) {
-                    const contacts = results[0].values.map(row => ({
-                        email: row[0],
-                        name: row[1],
-                        count: row[2]
-                    }));
-                    
-                    const container = document.getElementById('contacts-list');
-                    container.innerHTML = contacts.map(contact => `
-                        <div class="contact-item" onclick="searchContact('${contact.email}')">
-                            <span>${escapeHtml(contact.name || contact.email)}</span>
-                            <span class="contact-count">${contact.count}</span>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error loading contacts:', error);
-            }
-        }
-
-        function searchContact(email) {
-            // Update search input
-            const searchInput = document.getElementById('search-input');
-            const clearSearchBtn = document.getElementById('clear-search');
-            
-            searchInput.value = email;
-            searchQuery = email;
-            currentPage = 1;
-            
-            // Show clear button and focus search
-            clearSearchBtn.style.display = 'block';
-            searchInput.focus();
-            
-            // If we're in email detail view, go back to list view
-            if (document.getElementById('email-detail').style.display === 'block') {
-                document.getElementById('email-detail').style.display = 'none';
-                document.getElementById('list-view').style.display = 'block';
-                document.getElementById('permalink-btn').style.display = 'none';
-                window.history.pushState('', document.title, window.location.pathname + window.location.search);
-            }
-            
-            // Reset view to "All Emails" if we're in a filtered view
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.querySelector('.nav-item[data-view="inbox"]').classList.add('active');
-            currentView = 'inbox';
-            
-            loadEmails();
-        }
-
-        function updateCounts() {
-            if (!db) return;
-            
-            try {
-                // Total emails
-                const totalResult = db.exec("SELECT COUNT(*) FROM emails");
-                const total = totalResult[0] ? totalResult[0].values[0][0] : 0;
-                document.getElementById('inbox-count').textContent = total;
-                
-            } catch (error) {
-                console.error('Error updating counts:', error);
-            }
-        }
-
-        function updatePagination(total) {
-            const start = Math.min((currentPage - 1) * itemsPerPage + 1, total);
-            const end = Math.min(currentPage * itemsPerPage, total);
-            
-            document.getElementById('pagination-info').textContent = 
-                total > 0 ? `${start}–${end} of ${total}` : 'No emails';
-            
-            const totalPages = Math.ceil(total / itemsPerPage);
-            
-            document.getElementById('first-page').disabled = currentPage <= 1;
-            document.getElementById('prev-page').disabled = currentPage <= 1;
-            document.getElementById('next-page').disabled = currentPage >= totalPages || total === 0;
-            document.getElementById('last-page').disabled = currentPage >= totalPages || total === 0;
-        }
-
-        function getTotalEmails() {
-            if (!db) return 0;
-            
-            try {
-                let query = "SELECT COUNT(*) FROM emails";
-                
-                
-                const result = db.exec(query);
-                return result[0] ? result[0].values[0][0] : 0;
-            } catch (error) {
-                console.error('Error getting total emails:', error);
-                return 0;
-            }
-        }
-
-        function showStats() {
-            console.log('showStats called');
-            if (!db) {
-                alert('No database loaded');
-                return;
-            }
-            
-            try {
-                const stats = [];
-                
-                // Total emails
-                const totalResult = db.exec("SELECT COUNT(*) FROM emails");
-                stats.push(['Total Emails', totalResult[0] ? totalResult[0].values[0][0] : 0]);
-                
-                // Unique senders
-                const sendersResult = db.exec("SELECT COUNT(DISTINCT sender_email) FROM emails WHERE sender_email IS NOT NULL");
-                stats.push(['Unique Senders', sendersResult[0] ? sendersResult[0].values[0][0] : 0]);
-                
-                // Date range
-                const dateResult = db.exec("SELECT MIN(date_sent), MAX(date_sent) FROM emails WHERE date_sent IS NOT NULL");
-                if (dateResult[0] && dateResult[0].values[0][0]) {
-                    const [minDate, maxDate] = dateResult[0].values[0];
-                    stats.push(['Date Range', `${formatDate(minDate)} to ${formatDate(maxDate)}`]);
-                }
-                
-                // With attachments
-                const attachResult = db.exec("SELECT COUNT(*) FROM emails WHERE has_attachments = 1");
-                stats.push(['With Attachments', attachResult[0] ? attachResult[0].values[0][0] : 0]);
-                
-                const content = stats.map(([label, value]) => `
-                    <div class="stat-row">
-                        <span class="stat-label">${label}</span>
-                        <span class="stat-value">${value}</span>
-                    </div>
-                `).join('');
-                
-                document.getElementById('stats-content').innerHTML = content;
-                document.getElementById('stats-modal').classList.add('show');
-                
-            } catch (error) {
-                console.error('Error generating stats:', error);
-                alert('Error generating statistics: ' + error.message);
-            }
-        }
-
-        function closeStatsModal() {
-            document.getElementById('stats-modal').classList.remove('show');
-        }
-        
-        function showHelp() {
-            console.log('showHelp called');
-            const helpModal = document.getElementById('help-modal');
-            if (helpModal) {
-                helpModal.classList.add('show');
-                console.log('Help modal shown');
-            } else {
-                console.error('Help modal not found');
-            }
-        }
-        
-        function closeHelpModal() {
-            document.getElementById('help-modal').classList.remove('show');
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            if (isNaN(date)) return dateStr;
-            
+        // Utility functions
+        function formatDate(date) {
             const now = new Date();
-            const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
             
-            if (diff === 0) return 'Today';
-            if (diff === 1) return 'Yesterday';
-            if (diff < 7) return date.toLocaleDateString('en-US', { weekday: 'short' });
-            if (diff < 365) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            if (days === 0) {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else if (days < 7) {
+                return date.toLocaleDateString([], { weekday: 'short' });
+            } else if (days < 365) {
+                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            } else {
+                return date.toLocaleDateString([], { year: 'numeric', month: 'short' });
+            }
+        }
+
+        function formatEmailBody(text) {
+            if (!text) return '';
+            
+            // Convert plain text to HTML
+            let html = escapeHtml(text);
+            
+            // Convert URLs to links
+            html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color: #1a73e8;">$1</a>');
+            
+            // Convert email addresses to links
+            html = html.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, 
+                '<a href="mailto:$1" style="color: #1a73e8;">$1</a>');
+            
+            // Convert line breaks
+            html = html.replace(/\n/g, '<br>');
+            
+            return html;
         }
 
         function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
             };
-            return (text || '').toString().replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Permalink functionality
-        function copyPermalink(documentId) {
-            const url = `${window.location.origin}${window.location.pathname}${window.location.search}#email/${documentId}`;
-            
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(url).then(() => {
-                    showToast('Permalink copied to clipboard!');
-                }).catch(() => {
-                    fallbackCopyToClipboard(url);
-                });
-            } else {
-                fallbackCopyToClipboard(url);
-            }
-        }
-
-        function fallbackCopyToClipboard(text) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.opacity = '0';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            
-            try {
-                document.execCommand('copy');
-                showToast('Permalink copied to clipboard!');
-            } catch (err) {
-                console.error('Failed to copy permalink:', err);
-                showToast('Failed to copy permalink');
-            }
-            
-            document.body.removeChild(textArea);
-        }
-
-        function showToast(message) {
-            // Create toast element
-            const toast = document.createElement('div');
-            toast.textContent = message;
-            toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: var(--primary-color);
-                color: white;
-                padding: 12px 16px;
-                border-radius: 4px;
-                font-size: 14px;
-                z-index: 10000;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                opacity: 0;
-                transform: translateY(-10px);
-                transition: all 0.3s ease;
+        function showError(message) {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.innerHTML = `
+                <div style="text-align: center; max-width: 400px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                    <div style="font-size: 18px; margin-bottom: 10px; color: #d93025;">Error</div>
+                    <div style="color: #5f6368; line-height: 1.5;">${escapeHtml(message)}</div>
+                    <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>
+                </div>
             `;
-            
-            document.body.appendChild(toast);
-            
-            // Animate in
-            setTimeout(() => {
-                toast.style.opacity = '1';
-                toast.style.transform = 'translateY(0)';
-            }, 10);
-            
-            // Remove after 3 seconds
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(-10px)';
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        document.body.removeChild(toast);
-                    }
-                }, 300);
-            }, 3000);
         }
 
-        function handleHashChange() {
-            const hash = window.location.hash;
-            
-            if (hash.startsWith('#email/')) {
-                const documentId = hash.replace('#email/', '');
-                showEmailByDocumentId(documentId);
-            } else {
-                // No hash or invalid hash, show list view
-                if (document.getElementById('email-detail').style.display === 'block') {
-                    document.getElementById('email-detail').style.display = 'none';
-                    document.getElementById('list-view').style.display = 'block';
-                    document.getElementById('permalink-btn').style.display = 'none';
-                }
-            }
-        }
-
-        function showEmailByDocumentId(documentId) {
-            if (!db) return;
-            
-            try {
-                const query = `
-                    SELECT document_id, sender_email, sender_name, recipient_email, recipient_name, 
-                           subject, body, preview, date_sent, metadata
-                    FROM emails 
-                    WHERE document_id = ?
-                `;
-                
-                const results = db.exec(query, [documentId]);
-                
-                if (results.length > 0 && results[0].values.length > 0) {
-                    const row = results[0].values[0];
-                    const email = {
-                        document_id: row[0],
-                        sender_email: row[1],
-                        sender_name: row[2],
-                        recipient_email: row[3],
-                        recipient_name: row[4],
-                        subject: row[5],
-                        body: row[6],
-                        preview: row[7],
-                        date_sent: row[8],
-                        metadata: row[9] ? JSON.parse(row[9]) : {}
-                    };
-                    
-                    // Show email without updating hash to avoid infinite loop
-                    showEmail(email, false);
-                } else {
-                    console.warn('Email not found:', documentId);
-                    // Remove invalid hash
-                    window.location.hash = '';
-                }
-            } catch (error) {
-                console.error('Error loading email from permalink:', error);
-                window.location.hash = '';
-            }
-        }
-
-        // Handle permalink navigation
-        window.addEventListener('hashchange', handleHashChange);
-        
-        // Function to check permalink after database loads
-        function checkPermalinkOnLoad() {
-            if (window.location.hash.startsWith('#email/')) {
-                handleHashChange();
-            }
-        }
-        
-        // Initialize when page loads
-        initSqlJs();
+        // Start the application
+        window.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>

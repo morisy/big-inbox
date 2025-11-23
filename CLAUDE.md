@@ -21,13 +21,15 @@ Open Inbox is a DocumentCloud Add-On that converts DocumentCloud documents into 
 
 ### Working Features
 - Extracts email metadata from DocumentCloud document tags (from, to, subject, date)
-- **NEW: Regex fallback extraction** - When tags are not available, uses regex patterns to extract metadata from document text
+- **Regex fallback extraction** - When tags are not available, uses regex patterns to extract metadata from document text
+- **Permalink functionality** - Direct URLs to specific emails with copy/share capability
 - Creates SQLite databases with email-like structure
 - Commits databases to GitHub repository via API
-- Web interface for browsing/searching emails
+- Web interface for browsing/searching emails with Gmail-like interface
 - Links back to original DocumentCloud documents
 - Dynamic collection titles from database metadata
 - Mobile-responsive design
+- Browser back/forward navigation support
 
 ### Removed/Non-functional Features
 - **Starred emails** - Removed (was not implemented)
@@ -153,12 +155,51 @@ The Add-On now includes regex-based extraction as a fallback when DocumentCloud 
 ### Testing
 Use `test_regex_extraction.py` to test regex patterns on sample emails in the `sample_emails/` directory.
 
+## Permalink Functionality
+
+### How It Works
+Each email gets a unique, shareable URL that opens directly to that specific email in any collection.
+
+#### URL Format
+```
+https://morisy.github.io/open-inbox/?emails=collection_id#email/document_id
+```
+
+#### Usage
+1. **View any email** → URL automatically updates with permalink hash
+2. **Copy permalink** → Click the link icon (🔗) in the top-right header
+3. **Share URL** → Recipients open directly to the specific email
+4. **Browser navigation** → Back/forward buttons work seamlessly
+
+#### Features
+- **Automatic URL updates** when viewing emails
+- **Copy to clipboard** functionality with toast notifications
+- **Deep linking** - shared URLs open directly to emails
+- **Browser history** integration with proper back/forward behavior
+- **Fallback handling** for invalid email IDs
+
+#### Technical Implementation
+- Uses URL hash fragments (`#email/document_id`)
+- Hash change events handle navigation
+- Email document ID stored in header button for copying
+- Graceful degradation when emails don't exist
+
+#### Example URLs
+```bash
+# Collection homepage
+https://morisy.github.io/open-inbox/?emails=01c70a04_More_Jeb
+
+# Specific email permalink  
+https://morisy.github.io/open-inbox/?emails=01c70a04_More_Jeb#email/26296733
+```
+
 ## Future Improvements
 
 ### High Priority
-1. **Auto-update collections/index.json when creating new databases** (currently manual)
-2. Add pagination or virtual scrolling for large email lists
+1. **Scale beyond 25MB GitHub API limit** - Current capacity ~500-800 emails per collection
+2. Add pagination or virtual scrolling for large email lists  
 3. Improve mobile performance with lazy loading
+4. **Auto-update collections/index.json when creating new databases** (currently manual)
 
 ### Nice to Have
 1. Export functionality (CSV, JSON)
