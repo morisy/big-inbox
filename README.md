@@ -62,7 +62,10 @@ pip install -r requirements.txt
 # Test Add-On locally
 python main.py --query "your search query"
 
-# View interface
+# Run local server (opens browser automatically)
+python serve.py
+
+# Or use Python's built-in server
 python -m http.server 8000
 # Visit http://localhost:8000
 ```
